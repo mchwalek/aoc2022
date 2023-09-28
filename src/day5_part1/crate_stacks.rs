@@ -3,15 +3,14 @@ use std::collections::HashMap;
 use regex::Regex;
 
 use super::lib::Stack;
-use super::models::Crate;
 
 #[derive(PartialEq, Debug)]
-struct StackCollection<'a> {
-    _storage: HashMap<&'a str, Stack<Crate>>,
+pub struct CrateStacks<'a> {
+    _storage: HashMap<&'a str, Stack<Crate>>
 }
 
-impl<'a> StackCollection<'a> {
-    fn new(stack_lines: &'a Vec<String>) -> StackCollection<'a> {
+impl<'a> CrateStacks<'a> {
+    pub fn new(stack_lines: &'a Vec<String>) -> CrateStacks<'a> {
 
         let (id_line, content_lines) = stack_lines.split_last().unwrap();
 
@@ -21,7 +20,7 @@ impl<'a> StackCollection<'a> {
             .map(|m| (m.as_str(), m.start()))
             .collect();
 
-        let mut result = StackCollection {
+        let mut result = CrateStacks {
             _storage: id_lookup
                 .iter()
                 .map(|(&id, _)| (id, Stack::new()))
@@ -30,16 +29,26 @@ impl<'a> StackCollection<'a> {
 
         for line in content_lines.into_iter().rev() {
             for (&id, &index) in id_lookup.iter() {
-                if let Some(crate_char) = line.chars().nth(index) {
-                    if crate_char != ' ' {
-                        let stack = result._storage.get_mut(id).unwrap();
-                        stack.push(Crate(crate_char));
-                    }
+                let crate_char =  line.chars().nth(index).unwrap();
+                if crate_char == ' ' {
+                    continue;
                 }
+
+                let stack = result._storage.get_mut(id).unwrap();
+                stack.push(Crate(crate_char));
             }
         }
 
         result
+    }
+}
+
+#[derive(PartialEq, Debug)]
+pub struct Crate(pub char);
+
+impl From<&str> for Stack<Crate> {
+    fn from(value: &str) -> Self {
+        value.chars().map(|x| Crate(x)).collect()
     }
 }
 
@@ -48,7 +57,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn initializes_stack_collection() {
+    fn initializes_crate_stacks() {
         let mut expected_stacks = HashMap::<_, Stack<Crate>>::new();
         expected_stacks.insert("1", "PFMQWGRT".into());
         expected_stacks.insert("2", "HFR".into());
@@ -72,6 +81,6 @@ mod tests {
             " 1   2   3   4   5   6   7   8   9 ".to_string()
         ];
         
-        assert_eq!(StackCollection { _storage: expected_stacks }, StackCollection::new(&stack_lines));
+        assert_eq!(CrateStacks { _storage: expected_stacks }, CrateStacks::new(&stack_lines));
     }
 }

@@ -1,15 +1,19 @@
-mod stack_collection;
+mod crate_stacks;
+mod command_collection;
 mod lib;
-mod models;
 
 use std::{fs::File, io::{self, BufRead}};
+
+use self::crate_stacks::CrateStacks;
 
 fn run(path: &str) -> String {
     let file = File::open(path).unwrap();
     let reader = io::BufReader::new(file);
 
-    let mut line_iter = reader.lines();
+    let line_iter = reader.lines();
     let (stack_lines, command_lines) = split_lines(line_iter);
+
+    let crate_stacks = CrateStacks::new(&stack_lines);
 
     String::new()
 }
@@ -17,24 +21,17 @@ fn run(path: &str) -> String {
 fn split_lines<T: Iterator<Item  = io::Result<String>>>(mut iter: T) -> (Vec<String>, Vec<String>) {
     let mut stack_lines = Vec::new();
     loop {
-        if let Some(Ok(line)) = iter.next() {
-            if line.is_empty() {
-                break;
-            }
-            else {
-                stack_lines.push(line);
-            }
-        } else {
-            break;
+        match iter.next() {
+            Some(Ok(line)) if !line.is_empty() => stack_lines.push(line),
+            _ => break,
         }
     }
 
     let mut command_lines = Vec::new();
     loop {
-        if let Some(Ok(line)) = iter.next() {
-            command_lines.push(line)
-        } else {
-            break;
+        match iter.next() {
+            Some(Ok(line)) => command_lines.push(line),
+            _ => break,
         }
     }
 

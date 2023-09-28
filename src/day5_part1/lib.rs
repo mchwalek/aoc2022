@@ -1,5 +1,3 @@
-use super::models::Crate;
-
 #[derive(PartialEq, Debug)]
 pub struct Stack<T> {
     _storage: Vec<T>
@@ -34,13 +32,6 @@ impl<T> FromIterator<T> for Stack<T> {
         result
     }
 }
-
-impl From<&str> for Stack<Crate> {
-    fn from(value: &str) -> Self {
-        value.chars().map(|x| Crate(x)).collect()
-    }
-}
-
 
 #[cfg(test)]
 mod tests {
