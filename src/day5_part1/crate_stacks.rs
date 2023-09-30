@@ -14,7 +14,7 @@ impl<'a> CrateStacks<'a> {
 
         let (id_line, content_lines) = stack_lines.split_last().unwrap();
 
-        let id_regex = Regex::new(r"[^ ]").unwrap();
+        let id_regex = Regex::new(r"\S+").unwrap();
         let id_lookup: HashMap<_, _> = id_regex
             .find_iter(id_line)
             .map(|m| (m.as_str(), m.start()))
@@ -68,17 +68,18 @@ mod tests {
         expected_stacks.insert("7", "PTHNML".into());
         expected_stacks.insert("8", "FDQR".into());
         expected_stacks.insert("9", "DSCNLPH".into());
+        expected_stacks.insert("10", "W".into());
 
         let stack_lines = vec![
-            "[T]     [D]         [L]            ".to_string(),
-            "[R]     [S] [G]     [P]         [H]".to_string(),
-            "[G]     [H] [W]     [R] [L]     [P]".to_string(),
-            "[W]     [G] [F] [H] [S] [M]     [L]".to_string(),
-            "[Q]     [V] [B] [J] [H] [N] [R] [N]".to_string(),
-            "[M] [R] [R] [P] [M] [T] [H] [Q] [C]".to_string(),
-            "[F] [F] [Z] [H] [S] [Z] [T] [D] [S]".to_string(),
-            "[P] [H] [P] [Q] [P] [M] [P] [F] [D]".to_string(),
-            " 1   2   3   4   5   6   7   8   9 ".to_string()
+            "[T]     [D]         [L]                 ".to_string(),
+            "[R]     [S] [G]     [P]         [H]     ".to_string(),
+            "[G]     [H] [W]     [R] [L]     [P]     ".to_string(),
+            "[W]     [G] [F] [H] [S] [M]     [L]     ".to_string(),
+            "[Q]     [V] [B] [J] [H] [N] [R] [N]    ".to_string(),
+            "[M] [R] [R] [P] [M] [T] [H] [Q] [C]    ".to_string(),
+            "[F] [F] [Z] [H] [S] [Z] [T] [D] [S]    ".to_string(),
+            "[P] [H] [P] [Q] [P] [M] [P] [F] [D] [W]".to_string(),
+            " 1   2   3   4   5   6   7   8   9   10".to_string()
         ];
         
         assert_eq!(CrateStacks { _storage: expected_stacks }, CrateStacks::new(&stack_lines));

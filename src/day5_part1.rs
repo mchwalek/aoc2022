@@ -1,5 +1,5 @@
 mod crate_stacks;
-mod command_collection;
+mod commands;
 mod lib;
 
 use std::{fs::File, io::{self, BufRead}};
