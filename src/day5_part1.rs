@@ -4,7 +4,7 @@ mod lib;
 
 use std::{fs::File, io::{self, BufRead}};
 
-use self::crate_stacks::CrateStacks;
+use self::{crate_stacks::CrateStacks, commands::Commands};
 
 fn run(path: &str) -> String {
     let file = File::open(path).unwrap();
@@ -13,9 +13,11 @@ fn run(path: &str) -> String {
     let line_iter = reader.lines();
     let (stack_lines, command_lines) = split_lines(line_iter);
 
-    let crate_stacks = CrateStacks::new(&stack_lines);
+    let mut crate_stacks = CrateStacks::new(&stack_lines);
+    let commands = Commands::new(&command_lines).unwrap();
+    crate_stacks.update(commands);
 
-    String::new()
+    crate_stacks.tops_string()
 }
 
 fn split_lines<T: Iterator<Item  = io::Result<String>>>(mut iter: T) -> (Vec<String>, Vec<String>) {

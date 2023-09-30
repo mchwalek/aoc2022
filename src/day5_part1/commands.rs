@@ -1,29 +1,41 @@
+use std::vec::IntoIter;
+
 use lazy_static::lazy_static;
 use regex::Regex;
 
 #[derive(PartialEq, Debug)]
 pub struct Commands<'a> {
-    _storage: Vec<Command<'a>>
+    storage: Vec<Command<'a>>
 }
 
 impl<'a> Commands<'a> {
     pub fn new(command_lines: &'a Vec<String>) -> Result<Commands<'a>, String> {
-        let mut result = Commands { _storage: Vec::new() };
+        let mut result = Commands { storage: Vec::new() };
 
         for line in command_lines {
 
-            result._storage.push(line.as_str().try_into()?);
+            result.storage.push(line.as_str().try_into()?);
         }
 
         Ok(result)
     }
 }
 
+impl<'a> IntoIterator for Commands<'a> {
+    type Item = Command<'a>;
+
+    type IntoIter = IntoIter<Self::Item>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.storage.into_iter()
+    }
+}
+
 #[derive(PartialEq, Debug)]
-struct Command<'a> {
-    _count: i32,
-    _from: &'a str,
-    _to: &'a str
+pub struct Command<'a> {
+    pub count: u32,
+    pub from: &'a str,
+    pub to: &'a str
 }
 
 lazy_static! {
@@ -38,6 +50,9 @@ impl<'a> TryFrom<&'a str> for Command<'a> {
         let captures = COMMAND_REGEX.captures(s).ok_or(format!("couldn't parse command '{}'", s))?;
         let count_string = captures.name("count").unwrap().as_str();
         let count: i32 = count_string.parse().map_err(|_| format!("couldn't parse count '{}' in command '{}'", count_string, s))?;
+        if count <= 0 {
+            return Err(format!("nonpositive count '{}' in command '{}'", count_string, s));
+        }
 
         let from = captures.name("from").unwrap().as_str();
         if WHITESPACE_REGEX.is_match(from) {
@@ -49,7 +64,7 @@ impl<'a> TryFrom<&'a str> for Command<'a> {
             return Err(format!("couldn't parse to '{}' in command '{}'", to, s));
         }
 
-        Ok(Command { _count: count, _from: from, _to: to })
+        Ok(Command { count: count as u32, from, to })
     }
 }
 
@@ -60,8 +75,8 @@ mod tests {
     #[test]
     fn initializes_command_collection() {
         let expected_commands = vec![
-            Command { _count: 3, _from: "8", _to: "9" },
-            Command { _count: 2, _from: "2", _to: "8" },
+            Command { count: 3, from: "8", to: "9" },
+            Command { count: 2, from: "2", to: "8" },
         ];
 
         let command_lines = vec![
@@ -69,11 +84,11 @@ mod tests {
             "move 2 from 2 to 8".to_string()
         ];
 
-        assert_eq!(Ok(Commands { _storage: expected_commands }), Commands::new(&command_lines));
+        assert_eq!(Ok(Commands { storage: expected_commands }), Commands::new(&command_lines));
     }
 
     #[test]
-    fn returns_error_If_any_line_parse_fails() {
+    fn returns_error_if_any_line_parse_fails() {
         let command_lines = vec![
             "move 3 from 8 to 9".to_string(),
             "invalid".to_string(),
@@ -93,6 +108,12 @@ mod tests {
     fn handles_count_errors() {
         assert_eq!(Err::<Command, _>("couldn't parse count ' ' in command 'move   from 8 to 9'".to_string()), "move   from 8 to 9".try_into());
         assert_eq!(Err::<Command, _>("couldn't parse count 'a' in command 'move a from 8 to 9'".to_string()), "move a from 8 to 9".try_into());
+    }
+
+    #[test]
+    fn handles_nonpositive_count_errors() {
+        assert_eq!(Err::<Command, _>("nonpositive count '0' in command 'move 0 from 8 to 9'".to_string()), "move 0 from 8 to 9".try_into());
+        assert_eq!(Err::<Command, _>("nonpositive count '-1' in command 'move -1 from 8 to 9'".to_string()), "move -1 from 8 to 9".try_into());
     }
 
     #[test]

@@ -1,23 +1,23 @@
 #[derive(PartialEq, Debug)]
 pub struct Stack<T> {
-    _storage: Vec<T>
+    storage: Vec<T>
 }
 
 impl<T> Stack<T> {
     pub fn new() -> Stack<T> {
-        Stack { _storage: Vec::new() }
+        Stack { storage: Vec::new() }
     }
 
     pub fn push(&mut self, item: T) {
-        self._storage.push(item);
+        self.storage.push(item);
     }
 
     pub fn top(&self) -> Option<&T> {
-        self._storage.last()
+        self.storage.last()
     }
 
     pub fn pop(&mut self) -> Option<T> {
-        self._storage.pop()
+        self.storage.pop()
     }
 }
 
