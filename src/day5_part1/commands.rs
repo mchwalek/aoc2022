@@ -47,21 +47,21 @@ impl<'a> TryFrom<&'a str> for Command<'a> {
     type Error = String;
 
     fn try_from(s: &'a str) -> Result<Self, Self::Error> {
-        let captures = COMMAND_REGEX.captures(s).ok_or(format!("couldn't parse command '{}'", s))?;
+        let captures = COMMAND_REGEX.captures(s).ok_or(format!("invalid command '{}'", s))?;
         let count_string = captures.name("count").unwrap().as_str();
-        let count: i32 = count_string.parse().map_err(|_| format!("couldn't parse count '{}' in command '{}'", count_string, s))?;
+        let count: i32 = count_string.parse().map_err(|_| format!("invalid count '{}' in command '{}'", count_string, s))?;
         if count <= 0 {
             return Err(format!("nonpositive count '{}' in command '{}'", count_string, s));
         }
 
         let from = captures.name("from").unwrap().as_str();
         if WHITESPACE_REGEX.is_match(from) {
-            return Err(format!("couldn't parse from '{}' in command '{}'", from, s));
+            return Err(format!("invalid from '{}' in command '{}'", from, s));
         }
 
         let to = captures.name("to").unwrap().as_str();
         if WHITESPACE_REGEX.is_match(to) {
-            return Err(format!("couldn't parse to '{}' in command '{}'", to, s));
+            return Err(format!("invalid to '{}' in command '{}'", to, s));
         }
 
         Ok(Command { count: count as u32, from, to })
@@ -70,61 +70,67 @@ impl<'a> TryFrom<&'a str> for Command<'a> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    mod commands {
+        use crate::day5_part1::commands::*;
 
-    #[test]
-    fn initializes_command_collection() {
-        let expected_commands = vec![
-            Command { count: 3, from: "8", to: "9" },
-            Command { count: 2, from: "2", to: "8" },
-        ];
+        #[test]
+        fn initializes_command_collection() {
+            let expected_commands = vec![
+                Command { count: 3, from: "8", to: "9" },
+                Command { count: 2, from: "2", to: "8" },
+            ];
 
-        let command_lines = vec![
-            "move 3 from 8 to 9".to_string(),
-            "move 2 from 2 to 8".to_string()
-        ];
+            let command_lines = vec![
+                "move 3 from 8 to 9".to_string(),
+                "move 2 from 2 to 8".to_string()
+            ];
 
-        assert_eq!(Ok(Commands { storage: expected_commands }), Commands::new(&command_lines));
+            assert_eq!(Ok(Commands { storage: expected_commands }), Commands::new(&command_lines));
+        }
+
+        #[test]
+        fn returns_error_if_any_line_parse_fails() {
+            let command_lines = vec![
+                "move 3 from 8 to 9".to_string(),
+                "invalid".to_string(),
+                "move 2 from 2 to 8".to_string()
+            ];
+
+            assert_eq!(Err("invalid command 'invalid'".to_string()), Commands::new(&command_lines));
+        }
     }
 
-    #[test]
-    fn returns_error_if_any_line_parse_fails() {
-        let command_lines = vec![
-            "move 3 from 8 to 9".to_string(),
-            "invalid".to_string(),
-            "move 2 from 2 to 8".to_string()
-        ];
+    mod command {
+        use crate::day5_part1::commands::*;
 
-        assert_eq!(Err("couldn't parse command 'invalid'".to_string()), Commands::new(&command_lines));
-    }
+        #[test]
+        fn handles_syntax_errors() {
+            assert_eq!(Err::<Command, _>("invalid command 'invalid'".to_string()), "invalid".try_into()); // completely invalid
+            assert_eq!(Err::<Command, _>("invalid command 'amove 3 from 8 to 9'".to_string()), "amove 3 from 8 to 9".try_into()); // leading chars forbidden
+        }
 
-    #[test]
-    fn handles_syntax_errors() {
-        assert_eq!(Err::<Command, _>("couldn't parse command 'invalid'".to_string()), "invalid".try_into()); // completely invalid
-        assert_eq!(Err::<Command, _>("couldn't parse command 'amove 3 from 8 to 9'".to_string()), "amove 3 from 8 to 9".try_into()); // leading chars forbidden
-    }
+        #[test]
+        fn handles_count_errors() {
+            assert_eq!(Err::<Command, _>("invalid count ' ' in command 'move   from 8 to 9'".to_string()), "move   from 8 to 9".try_into());
+            assert_eq!(Err::<Command, _>("invalid count 'a' in command 'move a from 8 to 9'".to_string()), "move a from 8 to 9".try_into());
+        }
 
-    #[test]
-    fn handles_count_errors() {
-        assert_eq!(Err::<Command, _>("couldn't parse count ' ' in command 'move   from 8 to 9'".to_string()), "move   from 8 to 9".try_into());
-        assert_eq!(Err::<Command, _>("couldn't parse count 'a' in command 'move a from 8 to 9'".to_string()), "move a from 8 to 9".try_into());
-    }
+        #[test]
+        fn handles_nonpositive_count_errors() {
+            assert_eq!(Err::<Command, _>("nonpositive count '0' in command 'move 0 from 8 to 9'".to_string()), "move 0 from 8 to 9".try_into());
+            assert_eq!(Err::<Command, _>("nonpositive count '-1' in command 'move -1 from 8 to 9'".to_string()), "move -1 from 8 to 9".try_into());
+        }
 
-    #[test]
-    fn handles_nonpositive_count_errors() {
-        assert_eq!(Err::<Command, _>("nonpositive count '0' in command 'move 0 from 8 to 9'".to_string()), "move 0 from 8 to 9".try_into());
-        assert_eq!(Err::<Command, _>("nonpositive count '-1' in command 'move -1 from 8 to 9'".to_string()), "move -1 from 8 to 9".try_into());
-    }
+        #[test]
+        fn handles_from_identifier_errors() {
+            assert_eq!(Err::<Command, _>("invalid from ' ' in command 'move 3 from   to 9'".to_string()), "move 3 from   to 9".try_into());
+            assert_eq!(Err::<Command, _>("invalid from '8 ' in command 'move 3 from 8  to 9'".to_string()), "move 3 from 8  to 9".try_into());
+        }
 
-    #[test]
-    fn handles_from_identifier_errors() {
-        assert_eq!(Err::<Command, _>("couldn't parse from ' ' in command 'move 3 from   to 9'".to_string()), "move 3 from   to 9".try_into());
-        assert_eq!(Err::<Command, _>("couldn't parse from '8 ' in command 'move 3 from 8  to 9'".to_string()), "move 3 from 8  to 9".try_into());
-    }
-
-    #[test]
-    fn handles_to_identifier_errors() {
-        assert_eq!(Err::<Command, _>("couldn't parse to ' ' in command 'move 3 from 8 to  '".to_string()), "move 3 from 8 to  ".try_into());
-        assert_eq!(Err::<Command, _>("couldn't parse to '9 ' in command 'move 3 from 8 to 9 '".to_string()), "move 3 from 8 to 9 ".try_into());
+        #[test]
+        fn handles_to_identifier_errors() {
+            assert_eq!(Err::<Command, _>("invalid to ' ' in command 'move 3 from 8 to  '".to_string()), "move 3 from 8 to  ".try_into());
+            assert_eq!(Err::<Command, _>("invalid to '9 ' in command 'move 3 from 8 to 9 '".to_string()), "move 3 from 8 to 9 ".try_into());
+        }
     }
 }
