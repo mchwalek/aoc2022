@@ -89,7 +89,7 @@ impl From<&str> for Stack<Crate> {
 #[cfg(test)]
 mod tests {
     mod new {
-        use crate::day5_part1::crate_stacks::*;
+        use crate::day5::crate_stacks::*;
 
         #[test]
         fn initializes_crate_stacks() {
@@ -133,7 +133,7 @@ mod tests {
     }
 
     mod update {
-        use crate::day5_part1::crate_stacks::*;
+        use crate::day5::crate_stacks::*;
 
         #[test]
         fn updates_crate_stack_using_commands() {
@@ -238,7 +238,7 @@ mod tests {
     }
 
     mod tops_string {
-        use crate::day5_part1::crate_stacks::*;
+        use crate::day5::crate_stacks::*;
 
         #[test]
         fn returns_tops_of_the_stacks_as_string() {

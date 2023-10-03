@@ -78,7 +78,7 @@ impl<'a> Command<'a> {
 #[cfg(test)]
 mod tests {
     mod commands {
-        use crate::day5_part1::commands::*;
+        use crate::day5::commands::*;
 
         #[test]
         fn initializes_command_collection() {
@@ -108,7 +108,7 @@ mod tests {
     }
 
     mod command {
-        use crate::day5_part1::commands::*;
+        use crate::day5::commands::*;
 
         #[test]
         fn handles_syntax_errors() {

@@ -74,7 +74,7 @@ pub fn split_lines<T: Iterator<Item  = io::Result<String>>>(mut iter: T) -> (Vec
 #[cfg(test)]
 mod tests {
     mod stack {
-        use crate::day5_part1::lib::*;
+        use crate::day5::lib::*;
 
         #[test]
         fn adds_items_to_top() {
@@ -117,7 +117,7 @@ mod tests {
     }
 
     mod split_lines {
-        use crate::day5_part1::lib::*;
+        use crate::day5::lib::*;
 
         #[test]
         fn splits_file_into_stack_and_command_lines() {
