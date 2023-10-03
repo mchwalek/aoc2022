@@ -1,7 +1,7 @@
 use indexmap::IndexMap;
 use regex::Regex;
 
-use super::lib::Stack;
+use super::lib::{Stack, Order};
 use super::commands::Commands;
 
 #[derive(PartialEq, Debug, Clone)]
@@ -49,16 +49,19 @@ impl<'a> CrateStacks<'a> {
         Ok(result)
     }
 
-    pub fn update(&self, commands: Commands) -> Result<CrateStacks, String> {
+    pub fn update(&self, commands: Commands, pop_order: Order) -> Result<CrateStacks, String> {
         let mut result = self.clone();
 
         for command in commands {
             let from_stack = result.storage.get_mut(command.from)
                 .ok_or(format!("unknown stack id '{}' specified in command '{}'", command.from, command.to_string()))?;
             let from_stack_len = from_stack.len();
-            let items: Vec<_> = from_stack.pop_many_iter(command.count)
-                .map_err(|_| format!("not enough items ({}) in stack '{}' specified in command '{}'", from_stack_len, command.from, command.to_string()))?
-                .collect();
+            let items: Vec<_> = match from_stack.pop_many_iter(command.count, pop_order) {
+                Ok(iter) => iter.collect(),
+                Err(_) => {
+                    return Err(format!("not enough items ({}) in stack '{}' specified in command '{}'", from_stack_len, command.from, command.to_string()));
+                }
+            };
 
             let to_stack = result.storage.get_mut(command.to)
                 .ok_or(format!("unknown stack id '{}' specified in command '{}'", command.to, command.to_string()))?;
@@ -158,7 +161,7 @@ mod tests {
                 "[Z] [H]    ".to_string(),
                 " 1   2   3 ".to_string()
             ];
-            assert_eq!(CrateStacks::new(&expected_stack_lines), stacks.update(commands))
+            assert_eq!(CrateStacks::new(&expected_stack_lines), stacks.update(commands, Order::LIFO))
         }
 
         #[test]
@@ -176,7 +179,7 @@ mod tests {
             ];
             let commands = Commands::new(&command_lines).unwrap();
 
-            assert_eq!(Err("unknown stack id '3' specified in command 'move 3 from 3 to 1'".to_string()), stacks.update(commands))
+            assert_eq!(Err("unknown stack id '3' specified in command 'move 3 from 3 to 1'".to_string()), stacks.update(commands, Order::LIFO))
         }
 
         #[test]
@@ -194,7 +197,7 @@ mod tests {
             ];
             let commands = Commands::new(&command_lines).unwrap();
 
-            assert_eq!(Err("unknown stack id '3' specified in command 'move 3 from 1 to 3'".to_string()), stacks.update(commands))
+            assert_eq!(Err("unknown stack id '3' specified in command 'move 3 from 1 to 3'".to_string()), stacks.update(commands, Order::LIFO))
         }
 
         #[test]
@@ -212,7 +215,7 @@ mod tests {
             ];
             let commands = Commands::new(&command_lines).unwrap();
 
-            assert_eq!(Err("not enough items (3) in stack '1' specified in command 'move 4 from 1 to 2'".to_string()), stacks.update(commands))
+            assert_eq!(Err("not enough items (3) in stack '1' specified in command 'move 4 from 1 to 2'".to_string()), stacks.update(commands, Order::LIFO))
         }
 
         #[test]
@@ -232,7 +235,7 @@ mod tests {
             ];
             let commands = Commands::new(&command_lines).unwrap();
 
-            assert!(stacks.update(commands).is_err());
+            assert!(stacks.update(commands, Order::LIFO).is_err());
             assert_eq!(original_stacks, stacks);
         }
     }
