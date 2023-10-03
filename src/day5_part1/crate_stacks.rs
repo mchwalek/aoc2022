@@ -55,21 +55,14 @@ impl<'a> CrateStacks<'a> {
         for command in commands {
             let from_stack = result.storage.get_mut(command.from)
                 .ok_or(format!("unknown stack id '{}' specified in command '{}'", command.from, command.to_string()))?;
-            if from_stack.len() < command.count {
-                return Err(format!("not enough items ({}) in stack '{}' specified in command '{}'", from_stack.len(), command.from, command.to_string()));
-            }
-
-            let mut items = Vec::with_capacity(command.count);
-            for _ in 0..command.count {
-
-                items.push(from_stack.pop().unwrap());
-            }
+            let from_stack_len = from_stack.len();
+            let items: Vec<_> = from_stack.pop_many_iter(command.count)
+                .map_err(|_| format!("not enough items ({}) in stack '{}' specified in command '{}'", from_stack_len, command.from, command.to_string()))?
+                .collect();
 
             let to_stack = result.storage.get_mut(command.to)
                 .ok_or(format!("unknown stack id '{}' specified in command '{}'", command.to, command.to_string()))?;
-            for item in items {
-                to_stack.push(item);
-            }
+            to_stack.push_many(items.into_iter());
         }
 
         Ok(result)

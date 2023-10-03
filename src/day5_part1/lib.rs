@@ -14,12 +14,27 @@ impl<T> Stack<T> {
         self.storage.push(item);
     }
 
+    pub fn push_many<U: Iterator<Item = T>>(&mut self, iter: U) {
+        for item in iter {
+            self.storage.push(item);
+        }
+    }
+
     pub fn top(&self) -> Option<&T> {
         self.storage.last()
     }
 
-    pub fn pop(&mut self) -> Option<T> {
-        self.storage.pop()
+    pub fn pop(&mut self) -> Result<T, &'static str> {
+        self.storage.pop().ok_or("empty stack")
+    }
+
+    pub fn pop_many_iter<'a>(&'a mut self, count: usize) -> Result<impl Iterator<Item = T> + 'a, String> {
+        if self.len() < count {
+            return Err(format!("not enough items ({}) in stack", self.len()));
+        }
+
+        let drain_start = self.storage.len() - count;
+        Ok(self.storage.drain(drain_start..).rev())
     }
 
     pub fn len(&self) -> usize {
@@ -30,10 +45,7 @@ impl<T> Stack<T> {
 impl<T> FromIterator<T> for Stack<T> {
     fn from_iter<U: IntoIterator<Item = T>>(iter: U) -> Self {
         let mut result = Stack::new();
-
-        for item in iter {
-            result.push(item);
-        }
+        result.push_many(iter.into_iter());
 
         result
     }
@@ -74,12 +86,33 @@ mod tests {
         }
 
         #[test]
-        fn removes_item_from_top_if_any() {
+        fn adds_many_items_to_top() {
+            let items = vec![1, 2];
+
+            let mut stack = Stack::new();
+            stack.push_many(items.into_iter());
+
+            assert_eq!(Some(&2), stack.top());
+        }
+
+        #[test]
+        fn removes_item_from_top_if_possible() {
             let mut stack = Stack::new();
             stack.push(1);
 
-            assert_eq!(Some(1), stack.pop());
-            assert_eq!(None, stack.pop());
+            assert_eq!(Ok(1), stack.pop());
+            assert_eq!(Err("empty stack"), stack.pop());
+        }
+
+        #[test]
+        fn removes_many_items_from_top_if_possible() {
+            let mut stack = Stack::new();
+            stack.push(1);
+            stack.push(2);
+            let mut stack2 = stack.clone();
+
+            assert_eq!(Ok(vec![2, 1]), stack.pop_many_iter(2).map(|x| x.collect()));
+            assert_eq!(Err::<Vec<_>, _>("not enough items (2) in stack".to_string()), stack2.pop_many_iter(3).map(|x| x.collect()));
         }
     }
 
