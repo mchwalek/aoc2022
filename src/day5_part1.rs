@@ -13,11 +13,11 @@ fn run(path: &str) -> String {
     let line_iter = reader.lines();
     let (stack_lines, command_lines) = lib::split_lines(line_iter);
 
-    let mut crate_stacks = CrateStacks::new(&stack_lines).unwrap();
+    let crate_stacks = CrateStacks::new(&stack_lines).unwrap();
     let commands = Commands::new(&command_lines).unwrap();
-    crate_stacks.update(commands);
+    let updated_stacks = crate_stacks.update(commands).unwrap();
 
-    crate_stacks.tops_string()
+    updated_stacks.tops_string()
 }
 
 #[cfg(test)]

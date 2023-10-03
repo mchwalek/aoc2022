@@ -4,7 +4,7 @@ use regex::Regex;
 use super::lib::Stack;
 use super::commands::Commands;
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub struct CrateStacks<'a> {
     storage: IndexMap<&'a str, Stack<Crate>>
 }
@@ -49,16 +49,30 @@ impl<'a> CrateStacks<'a> {
         Ok(result)
     }
 
-    pub fn update(&mut self, commands: Commands) {
-        for command in commands {
-            for _ in 0..command.count {
-                let from_stack = self.storage.get_mut(command.from).unwrap();
-                let item = from_stack.pop().unwrap();
+    pub fn update(&self, commands: Commands) -> Result<CrateStacks, String> {
+        let mut result = self.clone();
 
-                let to_stack = self.storage.get_mut(command.to).unwrap();
+        for command in commands {
+            let from_stack = result.storage.get_mut(command.from)
+                .ok_or(format!("unknown stack id '{}' specified in command '{}'", command.from, command.to_string()))?;
+            if from_stack.len() < command.count {
+                return Err(format!("not enough items ({}) in stack '{}' specified in command '{}'", from_stack.len(), command.from, command.to_string()));
+            }
+
+            let mut items = Vec::with_capacity(command.count);
+            for _ in 0..command.count {
+
+                items.push(from_stack.pop().unwrap());
+            }
+
+            let to_stack = result.storage.get_mut(command.to)
+                .ok_or(format!("unknown stack id '{}' specified in command '{}'", command.to, command.to_string()))?;
+            for item in items {
                 to_stack.push(item);
             }
         }
+
+        Ok(result)
     }
 
     pub fn tops_string(&self) -> String {
@@ -70,7 +84,7 @@ impl<'a> CrateStacks<'a> {
     }
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub struct Crate(pub char);
 
 impl From<&str> for Stack<Crate> {
@@ -136,15 +150,13 @@ mod tests {
                 "[P] [H] [P]".to_string(),
                 " 1   2   3 ".to_string()
             ];
-            let mut stacks = CrateStacks::new(&stack_lines).unwrap();
+            let stacks = CrateStacks::new(&stack_lines).unwrap();
 
             let command_lines = vec![
                 "move 3 from 1 to 2".to_string(),
                 "move 2 from 3 to 1".to_string()
             ];
             let commands = Commands::new(&command_lines).unwrap();
-
-            stacks.update(commands);
 
             let expected_stack_lines = vec![
                 "    [P]    ".to_string(),
@@ -153,7 +165,82 @@ mod tests {
                 "[Z] [H]    ".to_string(),
                 " 1   2   3 ".to_string()
             ];
-            assert_eq!(CrateStacks::new(&expected_stack_lines).unwrap(), stacks)
+            assert_eq!(CrateStacks::new(&expected_stack_lines), stacks.update(commands))
+        }
+
+        #[test]
+        fn handles_unknown_from_stack_id() {
+            let stack_lines = vec![
+                "[M]    ".to_string(),
+                "[F]    ".to_string(),
+                "[P] [H]".to_string(),
+                " 1   2 ".to_string()
+            ];
+            let stacks = CrateStacks::new(&stack_lines).unwrap();
+
+            let command_lines = vec![
+                "move 3 from 3 to 1".to_string(),
+            ];
+            let commands = Commands::new(&command_lines).unwrap();
+
+            assert_eq!(Err("unknown stack id '3' specified in command 'move 3 from 3 to 1'".to_string()), stacks.update(commands))
+        }
+
+        #[test]
+        fn handles_unknown_to_stack_id() {
+            let stack_lines = vec![
+                "[M]    ".to_string(),
+                "[F]    ".to_string(),
+                "[P] [H]".to_string(),
+                " 1   2 ".to_string()
+            ];
+            let stacks = CrateStacks::new(&stack_lines).unwrap();
+
+            let command_lines = vec![
+                "move 3 from 1 to 3".to_string(),
+            ];
+            let commands = Commands::new(&command_lines).unwrap();
+
+            assert_eq!(Err("unknown stack id '3' specified in command 'move 3 from 1 to 3'".to_string()), stacks.update(commands))
+        }
+
+        #[test]
+        fn handles_not_enough_items_in_stack() {
+            let stack_lines = vec![
+                "[M]    ".to_string(),
+                "[F]    ".to_string(),
+                "[P] [H]".to_string(),
+                " 1   2 ".to_string()
+            ];
+            let stacks = CrateStacks::new(&stack_lines).unwrap();
+
+            let command_lines = vec![
+                "move 4 from 1 to 2".to_string(),
+            ];
+            let commands = Commands::new(&command_lines).unwrap();
+
+            assert_eq!(Err("not enough items (3) in stack '1' specified in command 'move 4 from 1 to 2'".to_string()), stacks.update(commands))
+        }
+
+        #[test]
+        fn leaves_original_stack_unchanged() {
+            let stack_lines = vec![
+                "[M]    ".to_string(),
+                "[F]    ".to_string(),
+                "[P] [H]".to_string(),
+                " 1   2 ".to_string()
+            ];
+            let original_stacks = CrateStacks::new(&stack_lines).unwrap();
+            let stacks = CrateStacks::new(&stack_lines).unwrap();
+
+            let command_lines = vec![
+                "move 1 from 1 to 2".to_string(),
+                "move 3 from 1 to 3".to_string(),
+            ];
+            let commands = Commands::new(&command_lines).unwrap();
+
+            assert!(stacks.update(commands).is_err());
+            assert_eq!(original_stacks, stacks);
         }
     }
 

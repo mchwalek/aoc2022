@@ -1,6 +1,6 @@
 use std::io;
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub struct Stack<T> {
     storage: Vec<T>
 }
@@ -20,6 +20,10 @@ impl<T> Stack<T> {
 
     pub fn pop(&mut self) -> Option<T> {
         self.storage.pop()
+    }
+
+    pub fn len(&self) -> usize {
+        self.storage.len()
     }
 }
 

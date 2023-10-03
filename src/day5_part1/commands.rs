@@ -10,7 +10,7 @@ pub struct Commands<'a> {
 
 impl<'a> Commands<'a> {
     pub fn new(command_lines: &'a Vec<String>) -> Result<Commands<'a>, String> {
-        let mut result = Commands { storage: Vec::new() };
+        let mut result = Commands { storage: Vec::with_capacity(command_lines.len()) };
 
         for line in command_lines {
 
@@ -33,9 +33,10 @@ impl<'a> IntoIterator for Commands<'a> {
 
 #[derive(PartialEq, Debug)]
 pub struct Command<'a> {
-    pub count: u32,
+    pub count: usize,
     pub from: &'a str,
-    pub to: &'a str
+    pub to: &'a str,
+    original_str: &'a str
 }
 
 lazy_static! {
@@ -64,7 +65,13 @@ impl<'a> TryFrom<&'a str> for Command<'a> {
             return Err(format!("invalid to '{}' in command '{}'", to, s));
         }
 
-        Ok(Command { count: count as u32, from, to })
+        Ok(Command { count: count as usize, from, to, original_str: s })
+    }
+}
+
+impl<'a> Command<'a> {
+    pub fn to_string(&self) -> &'a str {
+        self.original_str
     }
 }
 
@@ -76,8 +83,8 @@ mod tests {
         #[test]
         fn initializes_command_collection() {
             let expected_commands = vec![
-                Command { count: 3, from: "8", to: "9" },
-                Command { count: 2, from: "2", to: "8" },
+                Command { count: 3, from: "8", to: "9", original_str: "move 3 from 8 to 9" },
+                Command { count: 2, from: "2", to: "8", original_str: "move 2 from 2 to 8" },
             ];
 
             let command_lines = vec![
