@@ -31,7 +31,7 @@ impl StartOfPacket {
 
 #[cfg(test)]
 mod tests {
-    use crate::day6_part1::start_of_packet_detector::*;
+    use crate::day6::start_of_packet_detector::*;
 
     #[test]
     fn returns_start_of_packet_if_found() {

@@ -63,7 +63,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::day6_part1::lib::*;
+    use crate::day6::lib::*;
 
     #[test]
     fn creates_an_iterator_with_sliding_sequence_of_n_items() {
