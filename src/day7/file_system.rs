@@ -7,16 +7,18 @@ pub struct FileSystem {
 }
 
 impl FileSystem {
+    const ROOT_DIR_ID: usize = 0;
+
     pub fn new() -> Self {
         FileSystem {
-            current_dir_id: 0,
+            current_dir_id: Self::ROOT_DIR_ID,
             files: Vec::new(),
-            dirs: vec![Dir::new("/".to_string())]
+            dirs: vec![Dir::new("/".to_string(), None)]
         }
     }
 
     pub fn add_dir(&mut self, name: String) {
-        self.dirs.push(Dir::new(name.clone()));
+        self.dirs.push(Dir::new(name.clone(), Some(self.current_dir_id)));
 
         let new_entry_index = self.dirs.len() - 1;
         let current_dir = &mut self.dirs[self.current_dir_id];
@@ -31,18 +33,28 @@ impl FileSystem {
         current_dir.file_ids.push(new_entry_index);
     }
 
-    pub fn cd(&mut self, dir: String) {
-        if dir == "/" {
-            self.current_dir_id = 0;
-        } else {
-            let current_dir = &self.dirs[self.current_dir_id];
-            self.current_dir_id = current_dir.dir_lookup[&dir]; // TODO: handle invalid dirs
+    pub fn cd(&mut self, dir: &str) {
+        match dir {
+            "/" => {
+                self.current_dir_id = Self::ROOT_DIR_ID;
+            },
+            ".." => {
+                let current_dir = &self.dirs[self.current_dir_id];
+
+                if let Some(id) = current_dir.parent_id {
+                    self.current_dir_id = id
+                }
+            }
+            _ => {
+                let current_dir = &self.dirs[self.current_dir_id];
+                self.current_dir_id = current_dir.dir_lookup[dir]; // TODO: handle invalid dirs
+            }
         }
     }
 
     fn string_representation(&self) -> String {
         let mut result = String::new();
-        self.dir_string_representation(&mut result, &self.dirs[0], 0);
+        self.dir_string_representation(&mut result, &self.dirs[Self::ROOT_DIR_ID], 0);
         result
     }
 
@@ -63,13 +75,14 @@ impl FileSystem {
 
 struct Dir {
     name: String,
+    parent_id: Option<usize>,
     dir_lookup: HashMap<String, usize>,
     file_ids: Vec<usize>,
 }
 
 impl Dir {
-    fn new(name: String) -> Self {
-        Dir { name, dir_lookup: HashMap::new(), file_ids: Vec::new() }
+    fn new(name: String, parent_id: Option<usize>) -> Self {
+        Dir { name, parent_id, dir_lookup: HashMap::new(), file_ids: Vec::new() }
     }
 }
 
@@ -85,17 +98,36 @@ mod tests {
     #[test]
     fn adds_entry_to_current_dir() {
         let mut fs = FileSystem::new();
-        fs.cd("/".to_string());
-        fs.add_file("a".to_string(), 123);
+        // path: /
+        fs.add_file("a".to_string(), 12);
         fs.add_dir("b".to_string());
-        fs.cd("b".to_string());
-        fs.add_file("a".to_string(), 456);
+
+        // path: /b
+        fs.cd("b");
+        fs.add_file("a".to_string(), 34);
+        fs.add_dir("b".to_string());
+
+        // path: /b/b
+        fs.cd("b");
+        fs.add_file("a".to_string(), 56);
+
+        // path: /b
+        fs.cd("..");
+        fs.add_file("c".to_string(), 78);
+
+        // path: /
+        fs.cd("/");
+        fs.add_file("c".to_string(), 90);
 
         let mut expected_representation = String::new();
         expected_representation.push_str("dir /\n");
-        expected_representation.push_str("  123 a\n");
+        expected_representation.push_str("  12 a\n");
+        expected_representation.push_str("  90 c\n");
         expected_representation.push_str("  dir b\n");
-        expected_representation.push_str("    456 a\n");
+        expected_representation.push_str("    34 a\n");
+        expected_representation.push_str("    78 c\n");
+        expected_representation.push_str("    dir b\n");
+        expected_representation.push_str("      56 a\n");
 
         assert_eq!(expected_representation, fs.string_representation());
     }
