@@ -6,7 +6,7 @@ pub struct CliParser {
 }
 
 impl CliParser {
-    pub fn parse<'a, T: Iterator<Item = Result<String>>>(iterator: T) -> FileSystem {
+    pub fn parse<'a, T: Iterator<Item = Result<String>>>(iterator: T) -> FileSystem<'a> {
         todo!()
     }
 }
