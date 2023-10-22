@@ -1,4 +1,5 @@
 use std::collections::{HashMap, hash_map::Entry};
+use std::fmt::Write;
 
 pub struct FileSystem<'a> {
     current_dir_id: usize,
@@ -18,36 +19,32 @@ impl<'a> FileSystem<'a> {
     }
 
     pub fn add_dir(&mut self, name: &'a str) -> Result<(), String> {
-        self.dirs.push(Dir::new(name, Some(self.current_dir_id)));
-
-        let new_entry_index = self.dirs.len() - 1;
+        let new_entry_index = self.dirs.len();
         let current_dir = &mut self.dirs[self.current_dir_id];
         match current_dir.dir_lookup.entry(name) {
             Entry::Vacant(entry) => {
                 entry.insert(new_entry_index);
+                self.dirs.push(Dir::new(name, Some(self.current_dir_id)));
             }
             Entry::Occupied(_) => {
                 return Err(format!("dir '{}' already exists", name));
             }
-
         }
 
         Ok(())
     }
 
     pub fn add_file(&mut self, name: &'a str, size: usize) -> Result<(), String> {
-        self.files.push(File { name, size });
-
-        let new_entry_index = self.files.len() - 1;
+        let new_entry_index = self.files.len();
         let current_dir = &mut self.dirs[self.current_dir_id];
         match current_dir.file_lookup.entry(name) {
             Entry::Vacant(entry) => {
                 entry.insert(new_entry_index);
+                self.files.push(File { name, size });
             }
             Entry::Occupied(_) => {
                 return Err(format!("file '{}' already exists", name.clone()));
             }
-
         }
 
         Ok(())
@@ -68,7 +65,7 @@ impl<'a> FileSystem<'a> {
             _ => {
                 let current_dir = &self.dirs[self.current_dir_id];
                 self.current_dir_id = *current_dir.dir_lookup.get(dir)
-                    .ok_or(format!("dir '{}' doesn\'t exist", dir))?;
+                    .ok_or_else(|| format!("dir '{}' doesn\'t exist", dir))?;
             }
         }
 
@@ -82,10 +79,11 @@ impl<'a> FileSystem<'a> {
     }
 
     fn dir_string_representation(&self, result: &mut String, dir: &Dir, indent: usize) {
-        result.push_str(&format!("{}dir {}\n", " ".repeat(indent), dir.name));
+        write!(result, "{}dir {}\n", " ".repeat(indent), dir.name).unwrap();
+
         for id in Self::sorted_values(&dir.file_lookup) {
             let file = &self.files[id];
-            result.push_str(&format!("{}{} {}\n", " ".repeat(indent + 2), file.size, file.name));
+            write!(result, "{}{} {}\n", " ".repeat(indent + 2), file.size, file.name).unwrap();
         }
 
         for id in Self::sorted_values(&dir.dir_lookup) {
@@ -149,14 +147,14 @@ mod tests {
         fs.add_file("c", 90).unwrap();
 
         let mut expected_representation = String::new();
-        expected_representation.push_str("dir /\n");
-        expected_representation.push_str("  12 a\n");
-        expected_representation.push_str("  90 c\n");
-        expected_representation.push_str("  dir b\n");
-        expected_representation.push_str("    34 a\n");
-        expected_representation.push_str("    78 c\n");
-        expected_representation.push_str("    dir b\n");
-        expected_representation.push_str("      56 a\n");
+        write!(expected_representation, "dir /\n").unwrap();
+        write!(expected_representation, "  12 a\n").unwrap();
+        write!(expected_representation, "  90 c\n").unwrap();
+        write!(expected_representation, "  dir b\n").unwrap();
+        write!(expected_representation, "    34 a\n").unwrap();
+        write!(expected_representation, "    78 c\n").unwrap();
+        write!(expected_representation, "    dir b\n").unwrap();
+        write!(expected_representation, "      56 a\n").unwrap();
 
         assert_eq!(expected_representation, fs.string_representation());
     }
@@ -180,8 +178,8 @@ mod tests {
 
         // check whether fs hasn't been changed
         let mut expected_representation = String::new();
-        expected_representation.push_str("dir /\n");
-        expected_representation.push_str("  12 a\n");
+        write!(expected_representation, "dir /\n").unwrap();
+        write!(expected_representation, "  12 a\n").unwrap();
         
         assert_eq!(expected_representation, fs.string_representation());
     }
@@ -202,9 +200,9 @@ mod tests {
 
         // check whether fs hasn't been changed
         let mut expected_representation = String::new();
-        expected_representation.push_str("dir /\n");
-        expected_representation.push_str("  dir a\n");
-        expected_representation.push_str("    dir a\n");
+        write!(expected_representation, "dir /\n").unwrap();
+        write!(expected_representation, "  dir a\n").unwrap();
+        write!(expected_representation, "    dir a\n").unwrap();
         
         assert_eq!(expected_representation, fs.string_representation());
     }
