@@ -1,4 +1,5 @@
 mod cli_parser;
+mod command_parser;
 mod file_system;
 
 use std::{fs::File, io::{self, BufRead}};
