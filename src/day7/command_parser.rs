@@ -1,4 +1,4 @@
-use std::iter::{self, Peekable};
+use std::iter::Peekable;
 
 use super::file_system::FileSystem;
 
@@ -8,7 +8,7 @@ pub struct CommandParser {
 impl CommandParser {
     const COMMAND_LINE_PREFIX: &'static str = "$ ";
 
-    pub fn parse<'a, 'b, T: Iterator<Item = String>>(iterator: &mut Peekable<T>) -> Result<Command, String> {
+    pub fn parse<T: Iterator<Item = String>>(iterator: &mut Peekable<T>) -> Result<Command, String> {
         let line = iterator.next().ok_or_else(|| "empty iterator passed".to_string())?;
         if !Self::command_line(&line) {
             return Err(format!("not a command line: '{}'", line));
@@ -27,10 +27,10 @@ impl CommandParser {
                 Ok(Command::Cd { dir: args[0].to_string() })
             },
             "ls" => {
-                let mut output: Vec<String> = Vec::new();
+                let mut output = Vec::new();
                 while !Self::on_last_output_line(iterator) {
                     let output_line = iterator.next().unwrap();
-                    output.push(output_line);
+                    output.push(output_line.try_into().unwrap());
                 }
 
                 Ok(Command::Ls { output })
@@ -54,7 +54,7 @@ impl CommandParser {
 #[derive(PartialEq, Debug)]
 pub enum Command {
     Cd { dir: String },
-    Ls { output: Vec<String> },
+    Ls { output: Vec<FsEntry> },
 }
 
 impl Command {
@@ -66,8 +66,34 @@ impl Command {
     }
 }
 
+#[derive(PartialEq, Debug)]
+enum FsEntry {
+    Dir { name: String },
+    File { name: String, size: usize },
+}
+
+impl FsEntry {
+    const DIR_LINE_PREFIX: &'static str = "dir ";
+}
+
+impl TryFrom<String> for FsEntry {
+    type Error = String;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        if value.starts_with(Self::DIR_LINE_PREFIX) {
+            let parts: Vec<_> = value.split(' ').collect();
+            Ok(Self::Dir { name: parts[1].to_string() })
+        } else {
+            let parts: Vec<_> = value.split(' ').collect();
+            Ok(Self::File { name: parts[1].to_string(), size: parts[0].parse().unwrap() })
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
+    use std::iter;
+
     use crate::day7::command_parser::*;
 
     #[test]
@@ -84,7 +110,9 @@ mod tests {
             "123 b.txt".to_string()
         ].into_iter().peekable();
         assert_eq!(
-            Ok(Command::Ls { output: vec!["dir a".to_string(), "123 b.txt".to_string()] }),
+            Ok(Command::Ls {
+                output: vec![FsEntry::Dir { name: "a".to_string() }, FsEntry::File { name: "b.txt".to_string(), size: 123 }]
+            }),
             CommandParser::parse(&mut iter));
     }
 
