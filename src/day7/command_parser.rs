@@ -58,16 +58,25 @@ pub enum Command {
 }
 
 impl Command {
-    pub fn update_fs(&self, fs: &mut FileSystem) {
+    pub fn update_fs(&self, fs: &mut FileSystem) -> Result<(), String> {
         match self {
-            Command::Ls { output } => todo!(),
-            Command::Cd { dir } => todo!(),
+            Command::Cd { dir } => fs.cd(dir),
+            Command::Ls { output } => {
+                for entry in output.iter() {
+                    match entry {
+                        FsEntry::Dir { name } => fs.add_dir(name.clone())?,
+                        FsEntry::File { name, size } => fs.add_file(name.clone(), *size)?,
+                    }
+                }
+
+                Ok(())
+            }
         }
     }
 }
 
 #[derive(PartialEq, Debug)]
-enum FsEntry {
+pub enum FsEntry {
     Dir { name: String },
     File { name: String, size: usize },
 }

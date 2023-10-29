@@ -1,30 +1,30 @@
 use std::collections::{HashMap, hash_map::Entry};
 use std::fmt::Write;
 
-pub struct FileSystem<'a> {
+pub struct FileSystem {
     current_dir_id: usize,
-    files: Vec<File<'a>>,
-    dirs: Vec<Dir<'a>>,
+    files: Vec<File>,
+    dirs: Vec<Dir>,
 }
 
-impl<'a> FileSystem<'a> {
+impl FileSystem {
     const ROOT_DIR_ID: usize = 0;
 
     pub fn new() -> Self {
         FileSystem {
             current_dir_id: Self::ROOT_DIR_ID,
             files: Vec::new(),
-            dirs: vec![Dir::new("/", None)]
+            dirs: vec![Dir::new("/".to_string(), None)]
         }
     }
 
-    pub fn add_dir(&mut self, name: &'a str) -> Result<(), String> {
+    pub fn add_dir(&mut self, name: String) -> Result<(), String> {
         let new_entry_index = self.dirs.len();
         let current_dir = &mut self.dirs[self.current_dir_id];
-        match current_dir.dir_lookup.entry(name) {
+        match current_dir.dir_lookup.entry(name.clone()) {
             Entry::Vacant(entry) => {
                 entry.insert(new_entry_index);
-                self.dirs.push(Dir::new(name, Some(self.current_dir_id)));
+                self.dirs.push(Dir::new(name.clone(), Some(self.current_dir_id)));
             }
             Entry::Occupied(_) => {
                 return Err(format!("dir '{}' already exists", name));
@@ -34,13 +34,13 @@ impl<'a> FileSystem<'a> {
         Ok(())
     }
 
-    pub fn add_file(&mut self, name: &'a str, size: usize) -> Result<(), String> {
+    pub fn add_file(&mut self, name: String, size: usize) -> Result<(), String> {
         let new_entry_index = self.files.len();
         let current_dir = &mut self.dirs[self.current_dir_id];
-        match current_dir.file_lookup.entry(name) {
+        match current_dir.file_lookup.entry(name.clone()) {
             Entry::Vacant(entry) => {
                 entry.insert(new_entry_index);
-                self.files.push(File { name, size });
+                self.files.push(File { name: name.clone(), size });
             }
             Entry::Occupied(_) => {
                 return Err(format!("file '{}' already exists", name.clone()));
@@ -72,7 +72,7 @@ impl<'a> FileSystem<'a> {
         Ok(())
     }
 
-    fn string_representation(&self) -> String {
+    pub fn string_representation(&self) -> String {
         let mut result = String::new();
         self.dir_string_representation(&mut result, &self.dirs[Self::ROOT_DIR_ID], 0);
         result
@@ -92,7 +92,7 @@ impl<'a> FileSystem<'a> {
         }
     }
 
-    fn sorted_values(map: &HashMap<&str, usize>) -> Vec<usize> {
+    fn sorted_values(map: &HashMap<String, usize>) -> Vec<usize> {
         let mut values: Vec<_> = map.values().map(|x| *x).collect();
         values.sort();
         values
@@ -100,21 +100,21 @@ impl<'a> FileSystem<'a> {
 
 }
 
-struct Dir<'a> {
-    name: &'a str,
+struct Dir {
+    name: String,
     parent_id: Option<usize>,
-    dir_lookup: HashMap<&'a str, usize>,
-    file_lookup: HashMap<&'a str, usize>,
+    dir_lookup: HashMap<String, usize>,
+    file_lookup: HashMap<String, usize>,
 }
 
-impl<'a> Dir<'a> {
-    fn new(name: &'a str, parent_id: Option<usize>) -> Self {
+impl Dir {
+    fn new(name: String, parent_id: Option<usize>) -> Self {
         Dir { name, parent_id, dir_lookup: HashMap::new(), file_lookup: HashMap::new() }
     }
 }
 
-struct File<'a> {
-    name: &'a str,
+struct File {
+    name: String,
     size: usize,
 }
 
@@ -126,25 +126,25 @@ mod tests {
     fn adds_entry_to_current_dir() {
         let mut fs = FileSystem::new();
         // path: /
-        fs.add_file("a", 12).unwrap();
-        fs.add_dir("b").unwrap();
+        fs.add_file("a".to_string(), 12).unwrap();
+        fs.add_dir("b".to_string()).unwrap();
 
         // path: /b
         fs.cd("b").unwrap();
-        fs.add_file("a", 34).unwrap();
-        fs.add_dir("b").unwrap();
+        fs.add_file("a".to_string(), 34).unwrap();
+        fs.add_dir("b".to_string()).unwrap();
 
         // path: /b/b
         fs.cd("b").unwrap();
-        fs.add_file("a", 56).unwrap();
+        fs.add_file("a".to_string(), 56).unwrap();
 
         // path: /b
         fs.cd("..").unwrap();
-        fs.add_file("c", 78).unwrap();
+        fs.add_file("c".to_string(), 78).unwrap();
 
         // path: /
         fs.cd("/").unwrap();
-        fs.add_file("c", 90).unwrap();
+        fs.add_file("c".to_string(), 90).unwrap();
 
         let mut expected_representation = String::new();
         write!(expected_representation, "dir /\n").unwrap();
@@ -163,7 +163,7 @@ mod tests {
     fn returns_error_on_invalid_cd() {
         let mut fs = FileSystem::new();
         // path: /
-        fs.add_dir("a").unwrap();
+        fs.add_dir("a".to_string()).unwrap();
 
         assert_eq!(Err("dir 'invalid' doesn\'t exist".to_string()), fs.cd("invalid"));
     }
@@ -172,9 +172,9 @@ mod tests {
     fn returns_error_on_invalid_add_file() {
         let mut fs = FileSystem::new();
         // path: /
-        fs.add_file("a", 12).unwrap();
+        fs.add_file("a".to_string(), 12).unwrap();
 
-        assert_eq!(Err("file 'a' already exists".to_string()), fs.add_file("a", 34));
+        assert_eq!(Err("file 'a' already exists".to_string()), fs.add_file("a".to_string(), 34));
 
         // check whether fs hasn't been changed
         let mut expected_representation = String::new();
@@ -188,15 +188,15 @@ mod tests {
     fn returns_error_on_invalid_add_dir() {
         let mut fs = FileSystem::new();
         // path: /
-        fs.add_dir("a").unwrap();
+        fs.add_dir("a".to_string()).unwrap();
 
         // path: /a
         fs.cd("a").unwrap();
-        fs.add_dir("a").unwrap();
+        fs.add_dir("a".to_string()).unwrap();
 
         // path: /
         fs.cd("..").unwrap();
-        assert_eq!(Err("dir 'a' already exists".to_string()), fs.add_dir("a"));
+        assert_eq!(Err("dir 'a' already exists".to_string()), fs.add_dir("a".to_string()));
 
         // check whether fs hasn't been changed
         let mut expected_representation = String::new();
