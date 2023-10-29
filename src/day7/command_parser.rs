@@ -30,7 +30,7 @@ impl CommandParser {
                 let mut output = Vec::new();
                 while !Self::on_last_output_line(iterator) {
                     let output_line = iterator.next().unwrap();
-                    output.push(output_line.try_into().unwrap());
+                    output.push(output_line.try_into()?);
                 }
 
                 Ok(Command::Ls { output })
@@ -80,12 +80,18 @@ impl TryFrom<String> for FsEntry {
     type Error = String;
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
+        let parts: Vec<_> = value.split(' ').collect();
+        if parts.len() != 2 {
+            return Err(format!("expected exactly 2 space separated parts in line '{}'", value));
+        }
+
+        let name = parts[1].to_string();
+
         if value.starts_with(Self::DIR_LINE_PREFIX) {
-            let parts: Vec<_> = value.split(' ').collect();
-            Ok(Self::Dir { name: parts[1].to_string() })
+            Ok(Self::Dir { name })
         } else {
-            let parts: Vec<_> = value.split(' ').collect();
-            Ok(Self::File { name: parts[1].to_string(), size: parts[0].parse().unwrap() })
+            let size: usize = parts[0].parse().map_err(|_| format!("invalid size '{}' in line '{}'", parts[0], value))?;
+            Ok(Self::File { name, size })
         }
     }
 }
@@ -138,6 +144,37 @@ mod tests {
 
         iter = command_string_to_iter("$ cd dir dir2".to_string());
         assert_eq!(Err("expected exactly 1 param in line '$ cd dir dir2'".to_string()), CommandParser::parse(&mut iter));
+    }
+
+    #[test]
+    fn handles_ls_command_errors() {
+        let mut iter = vec![
+            "$ ls".to_string(),
+            "dir a".to_string(),
+            "123".to_string()
+        ].into_iter().peekable();
+        assert_eq!(Err("expected exactly 2 space separated parts in line '123'".to_string()), CommandParser::parse(&mut iter));
+
+        iter = vec![
+            "$ ls".to_string(),
+            "dir a".to_string(),
+            "123 b.txt c.txt".to_string()
+        ].into_iter().peekable();
+        assert_eq!(Err("expected exactly 2 space separated parts in line '123 b.txt c.txt'".to_string()), CommandParser::parse(&mut iter));
+
+        iter = vec![
+            "$ ls".to_string(),
+            "dir a".to_string(),
+            "-123 b.txt".to_string()
+        ].into_iter().peekable();
+        assert_eq!(Err("invalid size '-123' in line '-123 b.txt'".to_string()), CommandParser::parse(&mut iter));
+
+        iter = vec![
+            "$ ls".to_string(),
+            "dir a".to_string(),
+            "123.1 b.txt".to_string()
+        ].into_iter().peekable();
+        assert_eq!(Err("invalid size '123.1' in line '123.1 b.txt'".to_string()), CommandParser::parse(&mut iter));
     }
 
     fn command_string_to_iter(command: String) -> Peekable<impl Iterator<Item = String>> {
