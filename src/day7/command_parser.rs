@@ -24,7 +24,7 @@ impl CommandParser {
                     return Err(format!("expected exactly 1 param in line '{}'", line));
                 }
 
-                Ok(Command::Cd { dir: args[0].to_string() })
+                Ok(Command::Cd(CdCommand { dir: args[0].to_string() }))
             },
             "ls" => {
                 let mut output = Vec::new();
@@ -33,7 +33,7 @@ impl CommandParser {
                     output.push(output_line.try_into()?);
                 }
 
-                Ok(Command::Ls { output })
+                Ok(Command::Ls(LsCommand { output }))
             },
             _ => Err(format!("invalid command '{}' in line '{}'", name, line)),
         }
@@ -53,30 +53,50 @@ impl CommandParser {
 
 #[derive(PartialEq, Debug)]
 pub enum Command {
-    Cd { dir: String },
-    Ls { output: Vec<FsEntry> },
+    Cd(CdCommand),
+    Ls(LsCommand),
 }
 
 impl Command {
     pub fn update_fs(&self, fs: &mut FileSystem) -> Result<(), String> {
         match self {
-            Command::Cd { dir } => fs.cd(dir),
-            Command::Ls { output } => {
-                for entry in output.iter() {
-                    match entry {
-                        FsEntry::Dir { name } => fs.add_dir(name.clone())?,
-                        FsEntry::File { name, size } => fs.add_file(name.clone(), *size)?,
-                    }
-                }
-
-                Ok(())
-            }
+            Command::Cd(command) => command.update_fs(fs),
+            Command::Ls(command) => command.update_fs(fs),
         }
     }
 }
 
 #[derive(PartialEq, Debug)]
-pub enum FsEntry {
+pub struct CdCommand {
+    dir: String
+}
+
+impl CdCommand {
+    fn update_fs(&self, fs: &mut FileSystem) -> Result<(), String> {
+        fs.cd(&self.dir)
+    }
+}
+
+#[derive(PartialEq, Debug)]
+pub struct LsCommand {
+    output: Vec<FsEntry>
+}
+
+impl LsCommand {
+    fn update_fs(&self, fs: &mut FileSystem) -> Result<(), String> {
+        for entry in self.output.iter() {
+            match entry {
+                FsEntry::Dir { name } => fs.add_dir(name.clone())?,
+                FsEntry::File { name, size } => fs.add_file(name.clone(), *size)?,
+            }
+        }
+
+        Ok(())
+    }
+}
+
+#[derive(PartialEq, Debug)]
+enum FsEntry {
     Dir { name: String },
     File { name: String, size: usize },
 }
@@ -114,7 +134,7 @@ mod tests {
     #[test]
     fn returns_cd_command() {
         let mut iter = command_string_to_iter("$ cd dir".to_string());
-        assert_eq!(Ok(Command::Cd { dir: "dir".to_string() }), CommandParser::parse(&mut iter));
+        assert_eq!(Ok(Command::Cd(CdCommand { dir: "dir".to_string() })), CommandParser::parse(&mut iter));
     }
 
     #[test]
@@ -125,9 +145,11 @@ mod tests {
             "123 b.txt".to_string()
         ].into_iter().peekable();
         assert_eq!(
-            Ok(Command::Ls {
-                output: vec![FsEntry::Dir { name: "a".to_string() }, FsEntry::File { name: "b.txt".to_string(), size: 123 }]
-            }),
+            Ok(Command::Ls(
+                LsCommand {
+                    output: vec![FsEntry::Dir { name: "a".to_string() }, FsEntry::File { name: "b.txt".to_string(), size: 123 }]
+                }
+            )),
             CommandParser::parse(&mut iter));
     }
 
