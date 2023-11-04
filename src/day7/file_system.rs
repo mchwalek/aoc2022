@@ -1,6 +1,7 @@
 use std::collections::VecDeque;
 use std::collections::{HashMap, hash_map::Entry};
 use std::fmt::Write;
+use std::path::PathBuf;
 
 const ROOT_DIR_ID: usize = 0;
 
@@ -87,6 +88,36 @@ impl FileSystem {
         self.dirs.iter()
     }
 
+    pub fn dir_size(&self, dir: &Dir) -> usize {
+        let mut result = 0;
+
+        for id in dir.file_lookup.values() {
+            let file = &self.files[*id];
+            result += file.size;
+        }
+
+        for id in dir.dir_lookup.values() {
+            let dir = &self.dirs[*id];
+            result += self.dir_size(dir);
+        }
+
+        result
+    }
+
+    pub fn dir_path(&self, dir: &Dir) -> String {
+        let mut parts = vec![dir.name.clone()];
+
+        let mut visited_dir = dir;
+        while let Some(dir) = visited_dir.parent_id.map(|x| &self.dirs[x]) {
+            parts.push(dir.name.clone());
+            visited_dir = dir;
+        }
+
+        let path_buf: PathBuf = parts.into_iter().rev().collect();
+
+        return path_buf.to_string_lossy().to_string()
+    }
+
     fn dir_string_representation(&self, result: &mut String, dir: &Dir, indent: usize) {
         write!(result, "{}dir {}\n", " ".repeat(indent), dir.name).unwrap();
 
@@ -140,26 +171,6 @@ impl<'a> DepthFirstDirs<'a> {
         DepthFirstDirs { fs, dir_stack: vec![(root_dir, dirs_to_visit)] }
     }
 
-    fn dir_size(&self, dir: &Dir) -> usize {
-        let mut result = 0;
-
-        for id in Self::values(&dir.file_lookup) {
-            let file = &self.fs.files[id];
-            result += file.size;
-        }
-
-        for id in Self::values(&dir.dir_lookup) {
-            let dir = &self.fs.dirs[id];
-            result += self.dir_size(dir);
-        }
-
-        result
-    }
-
-    fn values(map: &HashMap<String, usize>) -> Vec<usize> {
-        map.values().cloned().collect()
-    }
-
     fn fill_dir_stack(&mut self, dir: &'a Dir) {
         let mut dirs_to_visit = Self::child_dirs(self.fs, dir);
         let visited_dir_result = dirs_to_visit.pop_front();
@@ -175,7 +186,7 @@ impl<'a> DepthFirstDirs<'a> {
         let mut keys: Vec<_> = dir.dir_lookup.keys().collect();
         keys.sort();
 
-        keys.into_iter().map(|k| &fs.dirs[dir.dir_lookup[k]]).collect()
+        keys.into_iter().map(|x| &fs.dirs[dir.dir_lookup[x]]).collect()
     }
 }
 
@@ -190,13 +201,11 @@ impl<'a> Iterator for DepthFirstDirs<'a> {
         }
 
         let top_item = top_item_result.unwrap();
-        let (_, child_dirs) = top_item;
-        let child_dir_result = child_dirs.pop_front();
+        let (_, dirs_to_visit) = top_item;
 
-        // Top dir is not empty, meaning we should visit all of its children
-        if child_dir_result.is_some() {
+        if let Some(dir) = dirs_to_visit.pop_front() {
             // After filling the stack, we have guarantee that the top dir is a leaf
-            self.fill_dir_stack(child_dir_result.unwrap());
+            self.fill_dir_stack(dir);
         }
 
         // Pop and yield top dir
@@ -207,6 +216,8 @@ impl<'a> Iterator for DepthFirstDirs<'a> {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashSet;
+
     use crate::day7::file_system::*;
 
     #[test]
@@ -246,33 +257,6 @@ mod tests {
         assert_eq!(expected_representation, fs.string_representation());
     }
 
-    // #[test]
-    // fn calculates_sizes_for_each_dir() {
-    //     let mut fs = FileSystem::new();
-    //     // path: /
-    //     fs.add_file("a".to_string(), 12).unwrap();
-    //     fs.add_file("b".to_string(), 34).unwrap();
-    //     fs.add_dir("c".to_string()).unwrap();
-    //     fs.add_dir("d".to_string()).unwrap();
-
-    //     // path: /c
-    //     fs.cd("c").unwrap();
-    //     fs.add_file("a".to_string(), 56).unwrap();
-    //     fs.add_dir("b".to_string()).unwrap();
-
-    //     // path: /c/b
-    //     fs.cd("b").unwrap();
-    //     fs.add_file("a".to_string(), 78).unwrap();
-
-    //     let mut expected_items = HashSet::new();
-    //     expected_items.insert(("/".to_string(), 180));
-    //     expected_items.insert(("c".to_string(), 134));
-    //     expected_items.insert(("b".to_string(), 78));
-    //     expected_items.insert(("d".to_string(), 0));
-
-    //     assert_eq!(expected_items, fs.dir_sizes_iter().collect::<HashSet<_>>());
-    // }
-
     #[test]
     fn yields_all_dirs() {
         let mut fs = FileSystem::new();
@@ -302,11 +286,42 @@ mod tests {
         ];
         let expected_refs: Vec<_> = expected_items.iter().collect();
 
+        // Depth first order
         assert_eq!(expected_refs, fs.depth_first_dirs_iter().collect::<Vec<_>>());
 
+        // Arbitrary order
         for dir in fs.dirs_iter() {
            assert!(expected_refs.contains(&dir));
         }
+    }
+
+    #[test]
+    fn calculates_path_and_size_for_dirs() {
+        let mut fs = FileSystem::new();
+        // path: /
+        fs.add_file("a".to_string(), 12).unwrap();
+        fs.add_file("b".to_string(), 34).unwrap();
+        fs.add_dir("c".to_string()).unwrap();
+        fs.add_dir("d".to_string()).unwrap();
+
+        // path: /c
+        fs.cd("c").unwrap();
+        fs.add_file("a".to_string(), 56).unwrap();
+        fs.add_dir("b".to_string()).unwrap();
+
+        // path: /c/b
+        fs.cd("b").unwrap();
+        fs.add_file("a".to_string(), 78).unwrap();
+
+        let mut expected_items = HashSet::new();
+        expected_items.insert(("/".to_string(), 180));
+        expected_items.insert(("/c".to_string(), 134));
+        expected_items.insert(("/c/b".to_string(), 78));
+        expected_items.insert(("/d".to_string(), 0));
+
+        let result: HashSet<_> = fs.depth_first_dirs_iter().map(|x| (fs.dir_path(x), fs.dir_size(x))).collect();
+
+        assert_eq!(expected_items, result);
     }
 
     #[test]
