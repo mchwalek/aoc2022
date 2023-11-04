@@ -257,17 +257,12 @@ impl<'a> Iterator for DepthFirstFiles<'a> {
 
         let mut dir = dir_result.unwrap();
         loop {
-            let files = self.child_files(dir);
-            if !files.is_empty() {
+            let mut files = self.child_files(dir);
+            if let Some(file) = files.pop_front() {
                 self.files_to_visit = files;
-                return self.files_to_visit.pop_front();
+                break Some(file);
             } else {
-                let dir_result = self.dirs_iter.next();
-                if dir_result.is_none() {
-                    return None
-                } else {
-                    dir = dir_result.unwrap();
-                }
+                dir = self.dirs_iter.next()?;
             }
         }
     }
