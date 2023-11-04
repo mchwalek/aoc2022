@@ -79,8 +79,12 @@ impl FileSystem {
         result
     }
 
-    pub fn dirs_iter(&self) -> Dirs {
-        Dirs::new(self)
+    pub fn depth_first_dirs_iter(&self) -> impl Iterator<Item = &Dir> {
+        DepthFirstDirs::new(self)
+    }
+
+    pub fn dirs_iter(&self) -> impl Iterator<Item = &Dir> {
+        self.dirs.iter()
     }
 
     fn dir_string_representation(&self, result: &mut String, dir: &Dir, indent: usize) {
@@ -124,16 +128,16 @@ pub struct File {
     size: usize,
 }
 
-pub struct Dirs<'a> {
+pub struct DepthFirstDirs<'a> {
     fs: &'a FileSystem,
     dir_stack: Vec<(&'a Dir, VecDeque<&'a Dir>)>
 }
 
-impl<'a> Dirs<'a> {
+impl<'a> DepthFirstDirs<'a> {
     fn new(fs: &'a FileSystem) -> Self {
         let root_dir = &fs.dirs[ROOT_DIR_ID];
-        let child_dir_ids= Self::child_dirs(fs, root_dir);
-        Dirs { fs, dir_stack: vec![(root_dir, child_dir_ids)] }
+        let dirs_to_visit= Self::child_dirs(fs, root_dir);
+        DepthFirstDirs { fs, dir_stack: vec![(root_dir, dirs_to_visit)] }
     }
 
     fn dir_size(&self, dir: &Dir) -> usize {
@@ -157,13 +161,13 @@ impl<'a> Dirs<'a> {
     }
 
     fn fill_dir_stack(&mut self, dir: &'a Dir) {
-        let mut child_dir_ids = Self::child_dirs(self.fs, dir);
-        let child_dir_id_result = child_dir_ids.pop_front();
+        let mut dirs_to_visit = Self::child_dirs(self.fs, dir);
+        let visited_dir_result = dirs_to_visit.pop_front();
 
-        self.dir_stack.push((dir, child_dir_ids));
+        self.dir_stack.push((dir, dirs_to_visit));
 
-        if child_dir_id_result.is_some() {
-            self.fill_dir_stack(child_dir_id_result.unwrap())
+        if let Some(dir) = visited_dir_result {
+            self.fill_dir_stack(dir)
         }
     }
 
@@ -175,7 +179,7 @@ impl<'a> Dirs<'a> {
     }
 }
 
-impl<'a> Iterator for Dirs<'a> {
+impl<'a> Iterator for DepthFirstDirs<'a> {
     type Item = &'a Dir;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -296,8 +300,13 @@ mod tests {
                 file_lookup: HashMap::new()
             },
         ];
+        let expected_refs: Vec<_> = expected_items.iter().collect();
 
-        assert_eq!(expected_items.iter().collect::<Vec<_>>(), fs.dirs_iter().collect::<Vec<_>>());
+        assert_eq!(expected_refs, fs.depth_first_dirs_iter().collect::<Vec<_>>());
+
+        for dir in fs.dirs_iter() {
+           assert!(expected_refs.contains(&dir));
+        }
     }
 
     #[test]
