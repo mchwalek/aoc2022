@@ -79,8 +79,8 @@ impl FileSystem {
         result
     }
 
-    pub fn dir_sizes_iter(&self) -> DirSizes {
-        DirSizes::new(self)
+    pub fn dirs_iter(&self) -> Dirs {
+        Dirs::new(self)
     }
 
     fn dir_string_representation(&self, result: &mut String, dir: &Dir, indent: usize) {
@@ -98,13 +98,14 @@ impl FileSystem {
     }
 
     fn sorted_values(map: &HashMap<String, usize>) -> Vec<usize> {
-        let mut values: Vec<_> = map.values().map(|x| *x).collect();
+        let mut values: Vec<_> = map.values().cloned().collect();
         values.sort();
         values
     }
 }
 
-struct Dir {
+#[derive(PartialEq, Debug)]
+pub struct Dir {
     name: String,
     parent_id: Option<usize>,
     dir_lookup: HashMap<String, usize>,
@@ -117,31 +118,33 @@ impl Dir {
     }
 }
 
-struct File {
+#[derive(PartialEq, Debug, Eq)]
+pub struct File {
     name: String,
     size: usize,
 }
 
-pub struct DirSizes<'a> {
+pub struct Dirs<'a> {
     fs: &'a FileSystem,
-    dir_stack: Vec<(usize, VecDeque<usize>)>
+    dir_stack: Vec<(&'a Dir, VecDeque<&'a Dir>)>
 }
 
-impl<'a> DirSizes<'a> {
+impl<'a> Dirs<'a> {
     fn new(fs: &'a FileSystem) -> Self {
-        let child_dir_ids= Self::child_dir_ids(fs, ROOT_DIR_ID);
-        DirSizes { fs, dir_stack: vec![(ROOT_DIR_ID, child_dir_ids)] }
+        let root_dir = &fs.dirs[ROOT_DIR_ID];
+        let child_dir_ids= Self::child_dirs(fs, root_dir);
+        Dirs { fs, dir_stack: vec![(root_dir, child_dir_ids)] }
     }
 
     fn dir_size(&self, dir: &Dir) -> usize {
         let mut result = 0;
 
-        for id in Self::sorted_values(&dir.file_lookup) {
+        for id in Self::values(&dir.file_lookup) {
             let file = &self.fs.files[id];
             result += file.size;
         }
 
-        for id in Self::sorted_values(&dir.dir_lookup) {
+        for id in Self::values(&dir.dir_lookup) {
             let dir = &self.fs.dirs[id];
             result += self.dir_size(dir);
         }
@@ -149,30 +152,31 @@ impl<'a> DirSizes<'a> {
         result
     }
 
-    fn sorted_values(map: &HashMap<String, usize>) -> Vec<usize> {
-        let mut values: Vec<_> = map.values().map(|x| *x).collect();
-        values.sort();
-        values
+    fn values(map: &HashMap<String, usize>) -> Vec<usize> {
+        map.values().cloned().collect()
     }
 
-    fn fill_dir_stack(&mut self, dir_id: usize) {
-        let mut child_dir_ids = Self::child_dir_ids(self.fs, dir_id);
+    fn fill_dir_stack(&mut self, dir: &'a Dir) {
+        let mut child_dir_ids = Self::child_dirs(self.fs, dir);
         let child_dir_id_result = child_dir_ids.pop_front();
 
-        self.dir_stack.push((dir_id, child_dir_ids));
+        self.dir_stack.push((dir, child_dir_ids));
 
         if child_dir_id_result.is_some() {
             self.fill_dir_stack(child_dir_id_result.unwrap())
         }
     }
 
-    fn child_dir_ids(fs: &FileSystem, dir_id: usize) -> VecDeque<usize> {
-        fs.dirs[dir_id].dir_lookup.values().map(|x| *x).collect()
+    fn child_dirs(fs: &'a FileSystem, dir: &'a Dir) -> VecDeque<&'a Dir> {
+        let mut keys: Vec<_> = dir.dir_lookup.keys().collect();
+        keys.sort();
+
+        keys.into_iter().map(|k| &fs.dirs[dir.dir_lookup[k]]).collect()
     }
 }
 
-impl<'a> Iterator for DirSizes<'a> {
-    type Item = (String, usize);
+impl<'a> Iterator for Dirs<'a> {
+    type Item = &'a Dir;
 
     fn next(&mut self) -> Option<Self::Item> {
         let top_item_result = self.dir_stack.last_mut();
@@ -182,26 +186,23 @@ impl<'a> Iterator for DirSizes<'a> {
         }
 
         let top_item = top_item_result.unwrap();
-        let (_, child_ids) = top_item;
-        let child_id_result = child_ids.pop_front();
+        let (_, child_dirs) = top_item;
+        let child_dir_result = child_dirs.pop_front();
 
         // Top dir is not empty, meaning we should visit all of its children
-        if child_id_result.is_some() {
+        if child_dir_result.is_some() {
             // After filling the stack, we have guarantee that the top dir is a leaf
-            self.fill_dir_stack(child_id_result.unwrap());
+            self.fill_dir_stack(child_dir_result.unwrap());
         }
 
         // Pop and yield top dir
-        let (id, _) = &self.dir_stack.pop().unwrap();
-        let dir = &self.fs.dirs[*id];
-        Some((dir.name.clone(), self.dir_size(dir)))
+        let (dir, _) = &self.dir_stack.pop().unwrap();
+        Some(dir)
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashSet;
-
     use crate::day7::file_system::*;
 
     #[test]
@@ -241,31 +242,62 @@ mod tests {
         assert_eq!(expected_representation, fs.string_representation());
     }
 
+    // #[test]
+    // fn calculates_sizes_for_each_dir() {
+    //     let mut fs = FileSystem::new();
+    //     // path: /
+    //     fs.add_file("a".to_string(), 12).unwrap();
+    //     fs.add_file("b".to_string(), 34).unwrap();
+    //     fs.add_dir("c".to_string()).unwrap();
+    //     fs.add_dir("d".to_string()).unwrap();
+
+    //     // path: /c
+    //     fs.cd("c").unwrap();
+    //     fs.add_file("a".to_string(), 56).unwrap();
+    //     fs.add_dir("b".to_string()).unwrap();
+
+    //     // path: /c/b
+    //     fs.cd("b").unwrap();
+    //     fs.add_file("a".to_string(), 78).unwrap();
+
+    //     let mut expected_items = HashSet::new();
+    //     expected_items.insert(("/".to_string(), 180));
+    //     expected_items.insert(("c".to_string(), 134));
+    //     expected_items.insert(("b".to_string(), 78));
+    //     expected_items.insert(("d".to_string(), 0));
+
+    //     assert_eq!(expected_items, fs.dir_sizes_iter().collect::<HashSet<_>>());
+    // }
+
     #[test]
-    fn calculates_sizes_for_each_dir() {
+    fn yields_all_dirs() {
         let mut fs = FileSystem::new();
         // path: /
-        fs.add_file("a".to_string(), 12).unwrap();
-        fs.add_file("b".to_string(), 34).unwrap();
-        fs.add_dir("c".to_string()).unwrap();
-        fs.add_dir("d".to_string()).unwrap();
-
-        // path: /c
-        fs.cd("c").unwrap();
-        fs.add_file("a".to_string(), 56).unwrap();
+        fs.add_dir("a".to_string()).unwrap();
         fs.add_dir("b".to_string()).unwrap();
 
-        // path: /c/b
+        // path: /b
         fs.cd("b").unwrap();
-        fs.add_file("a".to_string(), 78).unwrap();
+        fs.add_dir("c".to_string()).unwrap();
 
-        let mut expected_items = HashSet::new();
-        expected_items.insert(("/".to_string(), 180));
-        expected_items.insert(("c".to_string(), 134));
-        expected_items.insert(("b".to_string(), 78));
-        expected_items.insert(("d".to_string(), 0));
+        let expected_items = [
+            Dir::new("a".to_string(), Some(0)),
+            Dir::new("c".to_string(), Some(2)),
+            Dir {
+                name: "b".to_string(),
+                parent_id: Some(0),
+                dir_lookup: [("c".to_string(), 3)].into_iter().collect(),
+                file_lookup: HashMap::new()
+            },
+            Dir {
+                name: "/".to_string(),
+                parent_id: None,
+                dir_lookup: [("a".to_string(), 1), ("b".to_string(), 2)].into_iter().collect(),
+                file_lookup: HashMap::new()
+            },
+        ];
 
-        assert_eq!(expected_items, fs.dir_sizes_iter().collect::<HashSet<_>>());
+        assert_eq!(expected_items.iter().collect::<Vec<_>>(), fs.dirs_iter().collect::<Vec<_>>());
     }
 
     #[test]
