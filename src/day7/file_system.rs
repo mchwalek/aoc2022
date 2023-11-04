@@ -88,6 +88,14 @@ impl FileSystem {
         self.dirs.iter()
     }
 
+    pub fn depth_first_files_iter(&self) -> impl Iterator<Item = &File> {
+        DepthFirstFiles::new(self, DepthFirstDirs::new(self))
+    }
+
+    pub fn files_iter(&self) -> impl Iterator<Item = &File> {
+        self.files.iter()
+    }
+
     pub fn dir_size(&self, dir: &Dir) -> usize {
         let mut result = 0;
 
@@ -167,15 +175,15 @@ pub struct DepthFirstDirs<'a> {
 impl<'a> DepthFirstDirs<'a> {
     fn new(fs: &'a FileSystem) -> Self {
         let root_dir = &fs.dirs[ROOT_DIR_ID];
-        let dirs_to_visit= Self::child_dirs(fs, root_dir);
-        DepthFirstDirs { fs, dir_stack: vec![(root_dir, dirs_to_visit)] }
+        let children_to_visit = Self::child_dirs(fs, root_dir);
+        DepthFirstDirs { fs, dir_stack: vec![(root_dir, children_to_visit)] }
     }
 
     fn fill_dir_stack(&mut self, dir: &'a Dir) {
-        let mut dirs_to_visit = Self::child_dirs(self.fs, dir);
-        let visited_dir_result = dirs_to_visit.pop_front();
+        let mut children_to_visit = Self::child_dirs(self.fs, dir);
+        let visited_dir_result = children_to_visit.pop_front();
 
-        self.dir_stack.push((dir, dirs_to_visit));
+        self.dir_stack.push((dir, children_to_visit));
 
         if let Some(dir) = visited_dir_result {
             self.fill_dir_stack(dir)
@@ -201,16 +209,67 @@ impl<'a> Iterator for DepthFirstDirs<'a> {
         }
 
         let top_item = top_item_result.unwrap();
-        let (_, dirs_to_visit) = top_item;
+        let (_, children_to_visit) = top_item;
 
-        if let Some(dir) = dirs_to_visit.pop_front() {
-            // After filling the stack, we have guarantee that the top dir is a leaf
+        if let Some(dir) = children_to_visit.pop_front() {
+            // After filling the stack, we have guarantee that the top dir has no children to visit
             self.fill_dir_stack(dir);
         }
 
         // Pop and yield top dir
         let (dir, _) = &self.dir_stack.pop().unwrap();
         Some(dir)
+    }
+}
+
+pub struct DepthFirstFiles<'a> {
+    fs: &'a FileSystem,
+    dirs_iter: DepthFirstDirs<'a>,
+    files_to_visit: VecDeque<&'a File>,
+}
+
+impl<'a> DepthFirstFiles<'a> {
+    fn new(fs: &'a FileSystem, dirs_iter: DepthFirstDirs<'a>) -> Self {
+        DepthFirstFiles { fs, dirs_iter, files_to_visit: VecDeque::new() }
+    }
+
+    fn child_files(&self, dir: &Dir) -> VecDeque<&'a File> {
+        let mut keys: Vec<_> = dir.file_lookup.keys().collect();
+        keys.sort();
+
+        keys.into_iter().map(|x| &self.fs.files[dir.file_lookup[x]]).collect()
+    }
+}
+
+impl<'a> Iterator for DepthFirstFiles<'a> {
+    type Item = &'a File;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let file_to_visit_result = self.files_to_visit.pop_front();
+        if file_to_visit_result.is_some() {
+            return file_to_visit_result;
+        }
+
+        let dir_result = self.dirs_iter.next();
+        if dir_result.is_none() {
+            return None
+        }
+
+        let mut dir = dir_result.unwrap();
+        loop {
+            let files = self.child_files(dir);
+            if !files.is_empty() {
+                self.files_to_visit = files;
+                return self.files_to_visit.pop_front();
+            } else {
+                let dir_result = self.dirs_iter.next();
+                if dir_result.is_none() {
+                    return None
+                } else {
+                    dir = dir_result.unwrap();
+                }
+            }
+        }
     }
 }
 
@@ -292,6 +351,49 @@ mod tests {
         // Arbitrary order
         for dir in fs.dirs_iter() {
            assert!(expected_refs.contains(&dir));
+        }
+    }
+
+    #[test]
+    fn yields_all_files() {
+        let mut fs = FileSystem::new();
+        // path: /
+        fs.add_file("a".to_string(), 12).unwrap();
+        fs.add_dir("b".to_string()).unwrap();
+        fs.add_dir("c".to_string()).unwrap();
+
+        // path: /c
+        fs.cd("c").unwrap();
+        fs.add_file("a".to_string(), 34).unwrap();
+        fs.add_dir("b".to_string()).unwrap();
+
+        // path: /c/b
+        fs.cd("b").unwrap();
+        fs.add_file("a".to_string(), 56).unwrap();
+
+        // path: /c
+        fs.cd("..").unwrap();
+        fs.add_file("c".to_string(), 78).unwrap();
+
+        // path: /
+        fs.cd("/").unwrap();
+        fs.add_file("c".to_string(), 90).unwrap();
+
+        let expected_items = [
+            File { name: "a".to_string(), size: 56 },
+            File { name: "a".to_string(), size: 34 },
+            File { name: "c".to_string(), size: 78 },
+            File { name: "a".to_string(), size: 12 },
+            File { name: "c".to_string(), size: 90 },
+        ];
+        let expected_refs: Vec<_> = expected_items.iter().collect();
+
+        // Depth first order
+        assert_eq!(expected_refs, fs.depth_first_files_iter().collect::<Vec<_>>());
+
+        // Arbitrary order
+        for file in fs.files_iter() {
+           assert!(expected_refs.contains(&file));
         }
     }
 
