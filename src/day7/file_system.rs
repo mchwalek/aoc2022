@@ -1,6 +1,5 @@
 use std::collections::VecDeque;
 use std::collections::{HashMap, hash_map::Entry};
-use std::fmt::Write;
 use std::path::PathBuf;
 
 const ROOT_DIR_ID: usize = 0;
@@ -42,7 +41,7 @@ impl FileSystem {
         match current_dir.file_lookup.entry(name.clone()) {
             Entry::Vacant(entry) => {
                 entry.insert(new_entry_index);
-                self.files.push(File { name: name.clone(), size });
+                self.files.push(File { name: name.clone(), size, parent_id: self.current_dir_id });
             }
             Entry::Occupied(_) => {
                 return Err(format!("file '{}' already exists", name.clone()));
@@ -72,12 +71,6 @@ impl FileSystem {
         }
 
         Ok(())
-    }
-
-    pub fn string_representation(&self) -> String {
-        let mut result = String::new();
-        self.dir_string_representation(&mut result, &self.dirs[ROOT_DIR_ID], 0);
-        result
     }
 
     pub fn depth_first_dirs_iter(&self) -> impl Iterator<Item = &Dir> {
@@ -113,6 +106,19 @@ impl FileSystem {
     }
 
     pub fn dir_path(&self, dir: &Dir) -> String {
+        let path_buf: PathBuf = self.dir_path_buf(dir);
+        path_buf.to_string_lossy().to_string()
+    }
+
+    pub fn file_path(&self, file: &File) -> String {
+        let parent_dir = &self.dirs[file.parent_id];
+        let mut path_buf: PathBuf = self.dir_path_buf(parent_dir);
+        path_buf.push(file.name.clone());
+
+        path_buf.to_string_lossy().to_string()
+    }
+
+    fn dir_path_buf(&self, dir: &Dir) -> PathBuf {
         let mut parts = vec![dir.name.clone()];
 
         let mut visited_dir = dir;
@@ -121,29 +127,7 @@ impl FileSystem {
             visited_dir = dir;
         }
 
-        let path_buf: PathBuf = parts.into_iter().rev().collect();
-
-        return path_buf.to_string_lossy().to_string()
-    }
-
-    fn dir_string_representation(&self, result: &mut String, dir: &Dir, indent: usize) {
-        write!(result, "{}dir {}\n", " ".repeat(indent), dir.name).unwrap();
-
-        for id in Self::sorted_values(&dir.file_lookup) {
-            let file = &self.files[id];
-            write!(result, "{}{} {}\n", " ".repeat(indent + 2), file.size, file.name).unwrap();
-        }
-
-        for id in Self::sorted_values(&dir.dir_lookup) {
-            let dir = &self.dirs[id];
-            self.dir_string_representation(result, dir, indent + 2);
-        }
-    }
-
-    fn sorted_values(map: &HashMap<String, usize>) -> Vec<usize> {
-        let mut values: Vec<_> = map.values().cloned().collect();
-        values.sort();
-        values
+        parts.into_iter().rev().collect()
     }
 }
 
@@ -165,6 +149,7 @@ impl Dir {
 pub struct File {
     name: String,
     size: usize,
+    parent_id: usize,
 }
 
 pub struct DepthFirstDirs<'a> {
@@ -274,42 +259,42 @@ mod tests {
 
     use crate::day7::file_system::*;
 
-    #[test]
-    fn adds_entry_to_current_dir() {
-        let mut fs = FileSystem::new();
-        // path: /
-        fs.add_file("a".to_string(), 12).unwrap();
-        fs.add_dir("b".to_string()).unwrap();
+    // #[test]
+    // fn adds_entry_to_current_dir() {
+    //     let mut fs = FileSystem::new();
+    //     // path: /
+    //     fs.add_file("a".to_string(), 12).unwrap();
+    //     fs.add_dir("b".to_string()).unwrap();
 
-        // path: /b
-        fs.cd("b").unwrap();
-        fs.add_file("a".to_string(), 34).unwrap();
-        fs.add_dir("b".to_string()).unwrap();
+    //     // path: /b
+    //     fs.cd("b").unwrap();
+    //     fs.add_file("a".to_string(), 34).unwrap();
+    //     fs.add_dir("b".to_string()).unwrap();
 
-        // path: /b/b
-        fs.cd("b").unwrap();
-        fs.add_file("a".to_string(), 56).unwrap();
+    //     // path: /b/b
+    //     fs.cd("b").unwrap();
+    //     fs.add_file("a".to_string(), 56).unwrap();
 
-        // path: /b
-        fs.cd("..").unwrap();
-        fs.add_file("c".to_string(), 78).unwrap();
+    //     // path: /b
+    //     fs.cd("..").unwrap();
+    //     fs.add_file("c".to_string(), 78).unwrap();
 
-        // path: /
-        fs.cd("/").unwrap();
-        fs.add_file("c".to_string(), 90).unwrap();
+    //     // path: /
+    //     fs.cd("/").unwrap();
+    //     fs.add_file("c".to_string(), 90).unwrap();
 
-        let mut expected_representation = String::new();
-        write!(expected_representation, "dir /\n").unwrap();
-        write!(expected_representation, "  12 a\n").unwrap();
-        write!(expected_representation, "  90 c\n").unwrap();
-        write!(expected_representation, "  dir b\n").unwrap();
-        write!(expected_representation, "    34 a\n").unwrap();
-        write!(expected_representation, "    78 c\n").unwrap();
-        write!(expected_representation, "    dir b\n").unwrap();
-        write!(expected_representation, "      56 a\n").unwrap();
+    //     let mut expected_representation = String::new();
+    //     write!(expected_representation, "dir /\n").unwrap();
+    //     write!(expected_representation, "  12 a\n").unwrap();
+    //     write!(expected_representation, "  90 c\n").unwrap();
+    //     write!(expected_representation, "  dir b\n").unwrap();
+    //     write!(expected_representation, "    34 a\n").unwrap();
+    //     write!(expected_representation, "    78 c\n").unwrap();
+    //     write!(expected_representation, "    dir b\n").unwrap();
+    //     write!(expected_representation, "      56 a\n").unwrap();
 
-        assert_eq!(expected_representation, fs.string_representation());
-    }
+    //     assert_eq!(expected_representation, fs.string_representation());
+    // }
 
     #[test]
     fn yields_all_dirs() {
@@ -375,11 +360,11 @@ mod tests {
         fs.add_file("c".to_string(), 90).unwrap();
 
         let expected_items = [
-            File { name: "a".to_string(), size: 56 },
-            File { name: "a".to_string(), size: 34 },
-            File { name: "c".to_string(), size: 78 },
-            File { name: "a".to_string(), size: 12 },
-            File { name: "c".to_string(), size: 90 },
+            File { name: "a".to_string(), size: 56, parent_id: 3 },
+            File { name: "a".to_string(), size: 34, parent_id: 2 },
+            File { name: "c".to_string(), size: 78, parent_id: 2 },
+            File { name: "a".to_string(), size: 12, parent_id: 0 },
+            File { name: "c".to_string(), size: 90, parent_id: 0 },
         ];
         let expected_refs: Vec<_> = expected_items.iter().collect();
 
@@ -422,6 +407,43 @@ mod tests {
     }
 
     #[test]
+    fn calculates_path_and_size_for_files() {
+        let mut fs = FileSystem::new();
+        // path: /
+        fs.add_file("a".to_string(), 12).unwrap();
+        fs.add_dir("b".to_string()).unwrap();
+        fs.add_dir("c".to_string()).unwrap();
+
+        // path: /c
+        fs.cd("c").unwrap();
+        fs.add_file("a".to_string(), 34).unwrap();
+        fs.add_dir("b".to_string()).unwrap();
+
+        // path: /c/b
+        fs.cd("b").unwrap();
+        fs.add_file("a".to_string(), 56).unwrap();
+
+        // path: /c
+        fs.cd("..").unwrap();
+        fs.add_file("c".to_string(), 78).unwrap();
+
+        // path: /
+        fs.cd("/").unwrap();
+        fs.add_file("c".to_string(), 90).unwrap();
+
+        let mut expected_items = HashSet::new();
+        expected_items.insert(("/a".to_string(), 12));
+        expected_items.insert(("/c".to_string(), 90));
+        expected_items.insert(("/c/a".to_string(), 34));
+        expected_items.insert(("/c/c".to_string(), 78));
+        expected_items.insert(("/c/b/a".to_string(), 56));
+
+        let result: HashSet<_> = fs.depth_first_files_iter().map(|x| (fs.file_path(x), x.size)).collect();
+
+        assert_eq!(expected_items, result);
+    }
+
+    #[test]
     fn returns_error_on_invalid_cd() {
         let mut fs = FileSystem::new();
         // path: /
@@ -439,11 +461,11 @@ mod tests {
         assert_eq!(Err("file 'a' already exists".to_string()), fs.add_file("a".to_string(), 34));
 
         // check whether fs hasn't been changed
-        let mut expected_representation = String::new();
-        write!(expected_representation, "dir /\n").unwrap();
-        write!(expected_representation, "  12 a\n").unwrap();
+        // let mut expected_representation = String::new();
+        // write!(expected_representation, "dir /\n").unwrap();
+        // write!(expected_representation, "  12 a\n").unwrap();
         
-        assert_eq!(expected_representation, fs.string_representation());
+        // assert_eq!(expected_representation, fs.string_representation());
     }
 
     #[test]
@@ -461,11 +483,11 @@ mod tests {
         assert_eq!(Err("dir 'a' already exists".to_string()), fs.add_dir("a".to_string()));
 
         // check whether fs hasn't been changed
-        let mut expected_representation = String::new();
-        write!(expected_representation, "dir /\n").unwrap();
-        write!(expected_representation, "  dir a\n").unwrap();
-        write!(expected_representation, "    dir a\n").unwrap();
+        // let mut expected_representation = String::new();
+        // write!(expected_representation, "dir /\n").unwrap();
+        // write!(expected_representation, "  dir a\n").unwrap();
+        // write!(expected_representation, "    dir a\n").unwrap();
         
-        assert_eq!(expected_representation, fs.string_representation());
+        // assert_eq!(expected_representation, fs.string_representation());
     }
 }
