@@ -259,43 +259,6 @@ mod tests {
 
     use crate::day7::file_system::*;
 
-    // #[test]
-    // fn adds_entry_to_current_dir() {
-    //     let mut fs = FileSystem::new();
-    //     // path: /
-    //     fs.add_file("a".to_string(), 12).unwrap();
-    //     fs.add_dir("b".to_string()).unwrap();
-
-    //     // path: /b
-    //     fs.cd("b").unwrap();
-    //     fs.add_file("a".to_string(), 34).unwrap();
-    //     fs.add_dir("b".to_string()).unwrap();
-
-    //     // path: /b/b
-    //     fs.cd("b").unwrap();
-    //     fs.add_file("a".to_string(), 56).unwrap();
-
-    //     // path: /b
-    //     fs.cd("..").unwrap();
-    //     fs.add_file("c".to_string(), 78).unwrap();
-
-    //     // path: /
-    //     fs.cd("/").unwrap();
-    //     fs.add_file("c".to_string(), 90).unwrap();
-
-    //     let mut expected_representation = String::new();
-    //     write!(expected_representation, "dir /\n").unwrap();
-    //     write!(expected_representation, "  12 a\n").unwrap();
-    //     write!(expected_representation, "  90 c\n").unwrap();
-    //     write!(expected_representation, "  dir b\n").unwrap();
-    //     write!(expected_representation, "    34 a\n").unwrap();
-    //     write!(expected_representation, "    78 c\n").unwrap();
-    //     write!(expected_representation, "    dir b\n").unwrap();
-    //     write!(expected_representation, "      56 a\n").unwrap();
-
-    //     assert_eq!(expected_representation, fs.string_representation());
-    // }
-
     #[test]
     fn yields_all_dirs() {
         let mut fs = FileSystem::new();
@@ -461,11 +424,15 @@ mod tests {
         assert_eq!(Err("file 'a' already exists".to_string()), fs.add_file("a".to_string(), 34));
 
         // check whether fs hasn't been changed
-        // let mut expected_representation = String::new();
-        // write!(expected_representation, "dir /\n").unwrap();
-        // write!(expected_representation, "  12 a\n").unwrap();
-        
-        // assert_eq!(expected_representation, fs.string_representation());
+        let mut expected_dirs = HashSet::new();
+        expected_dirs.insert("/".to_string());
+        let result: HashSet<_> = fs.depth_first_dirs_iter().map(|x| fs.dir_path(x)).collect();
+        assert_eq!(expected_dirs, result);
+
+        let mut expected_files = HashSet::new();
+        expected_files.insert("/a".to_string());
+        let result: HashSet<_> = fs.depth_first_files_iter().map(|x| fs.file_path(x)).collect();
+        assert_eq!(expected_files, result);
     }
 
     #[test]
@@ -483,11 +450,11 @@ mod tests {
         assert_eq!(Err("dir 'a' already exists".to_string()), fs.add_dir("a".to_string()));
 
         // check whether fs hasn't been changed
-        // let mut expected_representation = String::new();
-        // write!(expected_representation, "dir /\n").unwrap();
-        // write!(expected_representation, "  dir a\n").unwrap();
-        // write!(expected_representation, "    dir a\n").unwrap();
-        
-        // assert_eq!(expected_representation, fs.string_representation());
+        let mut expected_dirs = HashSet::new();
+        expected_dirs.insert("/".to_string());
+        expected_dirs.insert("/a".to_string());
+        expected_dirs.insert("/a/a".to_string());
+        let result: HashSet<_> = fs.depth_first_dirs_iter().map(|x| fs.dir_path(x)).collect();
+        assert_eq!(expected_dirs, result);
     }
 }

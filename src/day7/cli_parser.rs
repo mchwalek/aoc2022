@@ -25,6 +25,8 @@ impl CliParser {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashSet;
+
     use crate::day7::cli_parser::*;
 
     #[test]
@@ -48,17 +50,22 @@ mod tests {
             "78 a".to_string(),
         ].into_iter().peekable();
 
-        // let mut expected_representation = String::new();
-        // write!(expected_representation, "dir /\n").unwrap();
-        // write!(expected_representation, "  12 a\n").unwrap();
-        // write!(expected_representation, "  dir b\n").unwrap();
-        // write!(expected_representation, "    34 a\n").unwrap();
-        // write!(expected_representation, "    dir b\n").unwrap();
-        // write!(expected_representation, "      56 a\n").unwrap();
-        // write!(expected_representation, "    dir c\n").unwrap();
-        // write!(expected_representation, "      78 a\n").unwrap();
+        let fs = CliParser::parse(&mut iter).unwrap();
 
-        // let fs = CliParser::parse(&mut iter).unwrap();
-        // assert_eq!(expected_representation, fs.string_representation());
+        let mut expected_dirs = HashSet::new();
+        expected_dirs.insert("/".to_string());
+        expected_dirs.insert("/b".to_string());
+        expected_dirs.insert("/b/b".to_string());
+        expected_dirs.insert("/b/c".to_string());
+        let result: HashSet<_> = fs.depth_first_dirs_iter().map(|x| fs.dir_path(x)).collect();
+        assert_eq!(expected_dirs, result);
+
+        let mut expected_files = HashSet::new();
+        expected_files.insert("/a".to_string());
+        expected_files.insert("/b/a".to_string());
+        expected_files.insert("/b/b/a".to_string());
+        expected_files.insert("/b/c/a".to_string());
+        let result: HashSet<_> = fs.depth_first_files_iter().map(|x| fs.file_path(x)).collect();
+        assert_eq!(expected_files, result);
     }
 }
