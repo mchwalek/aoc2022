@@ -4,12 +4,18 @@ mod file_system;
 
 use std::{fs::File, io::{self, BufRead}};
 
+use self::cli_parser::CliParser;
+
 fn run(path: &str) -> usize {
     let file = File::open(path).unwrap();
     let reader = io::BufReader::new(file);
-    let lines_iter = reader.lines();
+    let mut lines_iter = reader.lines().map(|x| x.unwrap()).peekable();
 
-    0
+    let fs = CliParser::parse(&mut lines_iter).unwrap();
+    fs.depth_first_dirs_iter()
+        .map(|x| fs.dir_size(x))
+        .filter(|x| *x <= 100000)
+        .sum()
 }
 
 #[cfg(test)]

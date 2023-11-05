@@ -1,4 +1,3 @@
-use std::fmt::Write;
 use std::iter::Peekable;
 
 use super::command_parser::CommandParser;
