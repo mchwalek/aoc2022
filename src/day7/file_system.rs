@@ -204,13 +204,8 @@ impl<'a> Iterator for DepthFirstDirs<'a> {
     type Item = &'a Dir;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let top_item_result = self.dir_stack.last_mut();
-        // Stack is empty, meaning we visited all the dirs
-        if top_item_result.is_none() {
-            return None;
-        }
-
-        let top_item = top_item_result.unwrap();
+        // If stack is empty, it means we visited all the dirs
+        let top_item = self.dir_stack.last_mut()?;
         let (_, children_to_visit) = top_item;
 
         if let Some(dir) = children_to_visit.pop_front() {
@@ -258,12 +253,7 @@ impl<'a> Iterator for DepthFirstFiles<'a> {
             return file_to_visit_result;
         }
 
-        let dir_result = self.dirs_iter.next();
-        if dir_result.is_none() {
-            return None;
-        }
-
-        let mut dir = dir_result.unwrap();
+        let mut dir = self.dirs_iter.next()?;
         loop {
             let mut files = self.child_files(dir);
             if let Some(file) = files.pop_front() {

@@ -68,7 +68,7 @@ struct Compartment {
 
 impl Compartment {
     fn new(items_string: &str) -> Compartment {
-        let items: Vec<_> = items_string.chars().map(|c| Item(c)).collect();
+        let items: Vec<_> = items_string.chars().map(Item).collect();
 
         Compartment { items }
     }

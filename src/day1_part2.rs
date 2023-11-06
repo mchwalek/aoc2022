@@ -23,7 +23,7 @@ fn run(path: &str) -> i32 {
     sums.push(sum);
 
     sums.sort_by(|a, b| b.cmp(a));
-    sums[0..3].into_iter().sum()
+    sums[0..3].iter().sum()
 }
 
 #[cfg(test)]

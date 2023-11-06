@@ -34,7 +34,7 @@ impl<'a> CrateStacks<'a> {
                 .collect(),
         };
 
-        for line in content_lines.into_iter().rev() {
+        for line in content_lines.iter().rev() {
             for (&id, &index) in id_lookup.iter() {
                 let crate_char = line.chars().nth(index).unwrap();
                 if crate_char == ' ' {
@@ -96,7 +96,7 @@ pub struct Crate(pub char);
 
 impl From<&str> for Stack<Crate> {
     fn from(value: &str) -> Self {
-        value.chars().map(|x| Crate(x)).collect()
+        value.chars().map(Crate).collect()
     }
 }
 
