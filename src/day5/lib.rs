@@ -2,12 +2,14 @@ use std::io;
 
 #[derive(PartialEq, Debug, Clone)]
 pub struct Stack<T> {
-    storage: Vec<T>
+    storage: Vec<T>,
 }
 
 impl<T> Stack<T> {
     pub fn new() -> Stack<T> {
-        Stack { storage: Vec::new() }
+        Stack {
+            storage: Vec::new(),
+        }
     }
 
     pub fn push(&mut self, item: T) {
@@ -28,7 +30,11 @@ impl<T> Stack<T> {
         self.storage.pop().ok_or("empty stack")
     }
 
-    pub fn pop_many_iter<'a>(&'a mut self, count: usize, order: Order) -> Result<impl Iterator<Item = T> + 'a, String> {
+    pub fn pop_many_iter<'a>(
+        &'a mut self,
+        count: usize,
+        order: Order,
+    ) -> Result<impl Iterator<Item = T> + 'a, String> {
         if self.len() < count {
             return Err(format!("not enough items ({}) in stack", self.len()));
         }
@@ -60,10 +66,12 @@ impl<T> FromIterator<T> for Stack<T> {
 #[derive(Copy, Clone)]
 pub enum Order {
     LIFO,
-    FIFO
+    FIFO,
 }
 
-pub fn split_lines<T: Iterator<Item  = io::Result<String>>>(mut iter: T) -> (Vec<String>, Vec<String>) {
+pub fn split_lines<T: Iterator<Item = io::Result<String>>>(
+    mut iter: T,
+) -> (Vec<String>, Vec<String>) {
     let mut stack_lines = Vec::new();
     loop {
         match iter.next() {
@@ -123,8 +131,14 @@ mod tests {
             stack.push(2);
             let mut stack2 = stack.clone();
 
-            assert_eq!(Ok(vec![2, 1]), stack.pop_many_iter(2, Order::LIFO).map(|x| x.collect()));
-            assert_eq!(Err::<Vec<_>, _>("not enough items (2) in stack".to_string()), stack2.pop_many_iter(3, Order::LIFO).map(|x| x.collect()));
+            assert_eq!(
+                Ok(vec![2, 1]),
+                stack.pop_many_iter(2, Order::LIFO).map(|x| x.collect())
+            );
+            assert_eq!(
+                Err::<Vec<_>, _>("not enough items (2) in stack".to_string()),
+                stack2.pop_many_iter(3, Order::LIFO).map(|x| x.collect())
+            );
         }
 
         #[test]
@@ -134,8 +148,14 @@ mod tests {
             stack.push(2);
             let mut stack2 = stack.clone();
 
-            assert_eq!(Ok(vec![1, 2]), stack.pop_many_iter(2, Order::FIFO).map(|x| x.collect()));
-            assert_eq!(Err::<Vec<_>, _>("not enough items (2) in stack".to_string()), stack2.pop_many_iter(3, Order::FIFO).map(|x| x.collect()));
+            assert_eq!(
+                Ok(vec![1, 2]),
+                stack.pop_many_iter(2, Order::FIFO).map(|x| x.collect())
+            );
+            assert_eq!(
+                Err::<Vec<_>, _>("not enough items (2) in stack".to_string()),
+                stack2.pop_many_iter(3, Order::FIFO).map(|x| x.collect())
+            );
         }
     }
 

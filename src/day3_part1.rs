@@ -1,4 +1,7 @@
-use std::{fs::File, io::{self, BufRead}};
+use std::{
+    fs::File,
+    io::{self, BufRead},
+};
 
 #[derive(PartialEq, Debug)]
 struct Rucksack {
@@ -12,7 +15,7 @@ impl Rucksack {
 
         Rucksack {
             first_compartment: Compartment::new(&items_string[..half_length]),
-            second_compartment: Compartment::new(&items_string[half_length..])
+            second_compartment: Compartment::new(&items_string[half_length..]),
         }
     }
 
@@ -31,8 +34,7 @@ impl Rucksack {
 
 #[derive(PartialEq, Debug)]
 struct Compartment {
-    items: Vec<Item>
-
+    items: Vec<Item>,
 }
 
 impl Compartment {
@@ -80,11 +82,11 @@ mod tests {
     fn initializes_rucksack() {
         let expected_rucksack = Rucksack {
             first_compartment: Compartment {
-                items: vec![Item('a'), Item('b')]
+                items: vec![Item('a'), Item('b')],
             },
             second_compartment: Compartment {
-                items: vec![Item('c'), Item('d')]
-            }
+                items: vec![Item('c'), Item('d')],
+            },
         };
 
         assert_eq!(expected_rucksack, Rucksack::new("abcd"));

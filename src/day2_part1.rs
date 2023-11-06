@@ -1,4 +1,7 @@
-use std::{fs::File, io::{self, BufRead}};
+use std::{
+    fs::File,
+    io::{self, BufRead},
+};
 
 #[derive(PartialEq, Debug)]
 enum RPSShape {
@@ -97,7 +100,10 @@ mod tests {
         assert_eq!(Ok(RPSShape::Scissors), RPSShape::try_from("C"));
         assert_eq!(Ok(RPSShape::Scissors), RPSShape::try_from("Z"));
 
-        assert_eq!(Err(String::from("Unsupported value: invalid")), RPSShape::try_from("invalid"));
+        assert_eq!(
+            Err(String::from("Unsupported value: invalid")),
+            RPSShape::try_from("invalid")
+        );
     }
 
     #[test]
@@ -112,7 +118,10 @@ mod tests {
 
         assert_eq!(RPSResult::Win, RPSShape::Scissors.fight(&RPSShape::Paper));
         assert_eq!(RPSResult::Loss, RPSShape::Scissors.fight(&RPSShape::Rock));
-        assert_eq!(RPSResult::Draw, RPSShape::Scissors.fight(&RPSShape::Scissors));
+        assert_eq!(
+            RPSResult::Draw,
+            RPSShape::Scissors.fight(&RPSShape::Scissors)
+        );
     }
 
     #[test]

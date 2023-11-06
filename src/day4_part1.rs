@@ -1,4 +1,7 @@
-use std::{fs::File, io::{self, BufRead}};
+use std::{
+    fs::File,
+    io::{self, BufRead},
+};
 
 #[derive(PartialEq, Debug)]
 struct Pair {
@@ -8,17 +11,18 @@ struct Pair {
 
 impl Pair {
     fn new(pair_string: &str) -> Pair {
-        let (first_assignment_string, second_assignment_string) = pair_string.split_once(',').unwrap();
+        let (first_assignment_string, second_assignment_string) =
+            pair_string.split_once(',').unwrap();
 
         Pair {
             first_assignment: Assignment::new(first_assignment_string),
-            second_assignment: Assignment::new(second_assignment_string)
+            second_assignment: Assignment::new(second_assignment_string),
         }
     }
 
-    fn has_contained_assignment(self) -> bool
-    {
-        self.first_assignment.contains(&self.second_assignment) || self.second_assignment.contains(&self.first_assignment)
+    fn has_contained_assignment(self) -> bool {
+        self.first_assignment.contains(&self.second_assignment)
+            || self.second_assignment.contains(&self.first_assignment)
     }
 }
 
@@ -67,8 +71,14 @@ mod tests {
     #[test]
     fn initializes_pair() {
         let expected_pair = Pair {
-            first_assignment: Assignment { lower_bound: 2, upper_bound: 4 },
-            second_assignment: Assignment { lower_bound: 6, upper_bound: 8 },
+            first_assignment: Assignment {
+                lower_bound: 2,
+                upper_bound: 4,
+            },
+            second_assignment: Assignment {
+                lower_bound: 6,
+                upper_bound: 8,
+            },
         };
         assert_eq!(expected_pair, Pair::new("2-4,6-8"));
     }

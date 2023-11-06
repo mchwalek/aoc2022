@@ -1,4 +1,7 @@
-use std::{fs::File, io::{self, BufRead}};
+use std::{
+    fs::File,
+    io::{self, BufRead},
+};
 
 #[derive(PartialEq, Debug)]
 struct Group {
@@ -45,19 +48,22 @@ impl Rucksack {
 
         Rucksack {
             first_compartment: Compartment::new(&items_string[..half_length]),
-            second_compartment: Compartment::new(&items_string[half_length..])
+            second_compartment: Compartment::new(&items_string[half_length..]),
         }
     }
 
     fn all_items(self) -> Vec<Item> {
-        self.first_compartment.items.into_iter().chain(self.second_compartment.items).collect()
+        self.first_compartment
+            .items
+            .into_iter()
+            .chain(self.second_compartment.items)
+            .collect()
     }
 }
 
 #[derive(PartialEq, Debug)]
 struct Compartment {
-    items: Vec<Item>
-
+    items: Vec<Item>,
 }
 
 impl Compartment {
@@ -116,27 +122,27 @@ mod tests {
         let expected_group = Group {
             first_rucksack: Rucksack {
                 first_compartment: Compartment {
-                    items: vec![Item('a'), Item('b')]
+                    items: vec![Item('a'), Item('b')],
                 },
                 second_compartment: Compartment {
-                    items: vec![Item('c'), Item('d')]
-                }
+                    items: vec![Item('c'), Item('d')],
+                },
             },
             second_rucksack: Rucksack {
                 first_compartment: Compartment {
-                    items: vec![Item('e')]
+                    items: vec![Item('e')],
                 },
                 second_compartment: Compartment {
-                    items: vec![Item('f')]
-                }
+                    items: vec![Item('f')],
+                },
             },
             third_rucksack: Rucksack {
                 first_compartment: Compartment {
-                    items: vec![Item('g')]
+                    items: vec![Item('g')],
                 },
                 second_compartment: Compartment {
-                    items: vec![Item('h')]
-                }
+                    items: vec![Item('h')],
+                },
             },
         };
 
@@ -149,12 +155,12 @@ mod tests {
         let duplicate_bundle = [
             String::from("vJrwpWtwJgWrhcsFMMfFFhFp"),
             String::from("jqHRNqRjqzjGDLGLrsFMfFZSrLrFZsSL"),
-            String::from("PmmdzqPrVvPwwTWBwg")
+            String::from("PmmdzqPrVvPwwTWBwg"),
         ];
         let non_duplicate_bundle = [
             String::from("vJwpWtwJgWhcsFMMfFFhFp"),
             String::from("jqHRNqRjqzjGDLGLrsFMfFZSrLrFZsSL"),
-            String::from("PmmdzqPrVvPwwTWBwg")
+            String::from("PmmdzqPrVvPwwTWBwg"),
         ];
 
         assert_eq!(Some(Item('r')), Group::new(duplicate_bundle).find_badge());

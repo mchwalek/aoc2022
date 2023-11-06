@@ -1,7 +1,10 @@
-mod lib;
 mod data_reader;
+mod lib;
 
-use std::{fs::File, io::{self, Read}};
+use std::{
+    fs::File,
+    io::{self, Read},
+};
 
 use self::data_reader::DataReader;
 
@@ -16,7 +19,10 @@ fn run(path: &str) -> (usize, usize) {
     let start_of_packet = data_reader.find_start_of_packet().unwrap();
     let start_of_message = data_reader.find_start_of_message().unwrap();
 
-    (start_of_packet.get_chars_processed(), start_of_message.get_chars_processed())
+    (
+        start_of_packet.get_chars_processed(),
+        start_of_message.get_chars_processed(),
+    )
 }
 
 #[cfg(test)]

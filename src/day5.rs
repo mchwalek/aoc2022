@@ -1,10 +1,13 @@
-mod crate_stacks;
 mod commands;
+mod crate_stacks;
 mod lib;
 
-use std::{fs::File, io::{self, BufRead}};
+use std::{
+    fs::File,
+    io::{self, BufRead},
+};
 
-use self::{crate_stacks::CrateStacks, commands::Commands};
+use self::{commands::Commands, crate_stacks::CrateStacks};
 
 fn run_part1(path: &str) -> String {
     let file = File::open(path).unwrap();

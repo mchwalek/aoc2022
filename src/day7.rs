@@ -2,7 +2,10 @@ mod cli_parser;
 mod command_parser;
 mod file_system;
 
-use std::{fs::File, io::{self, BufRead}};
+use std::{
+    fs::File,
+    io::{self, BufRead},
+};
 
 use self::cli_parser::CliParser;
 
@@ -12,7 +15,8 @@ fn run(path: &str) -> (usize, usize) {
     let mut lines_iter = reader.lines().map(|x| x.unwrap()).peekable();
 
     let fs = CliParser::parse(&mut lines_iter).unwrap();
-    let small_dirs_sum = fs.depth_first_dirs_iter()
+    let small_dirs_sum = fs
+        .depth_first_dirs_iter()
         .map(|x| fs.dir_size(x))
         .filter(|x| *x <= 100000)
         .sum();
@@ -20,10 +24,12 @@ fn run(path: &str) -> (usize, usize) {
     let root_dir = fs.dirs_iter().next().unwrap();
     let free_space = 70000000 - fs.dir_size(root_dir);
     let space_needed = 30000000 - free_space;
-    let smallest_dir_to_remove = fs.depth_first_dirs_iter()
+    let smallest_dir_to_remove = fs
+        .depth_first_dirs_iter()
         .map(|x| fs.dir_size(x))
         .filter(|x| *x >= space_needed)
-        .min().unwrap();
+        .min()
+        .unwrap();
 
     (small_dirs_sum, smallest_dir_to_remove)
 }

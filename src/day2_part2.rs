@@ -1,4 +1,7 @@
-use std::{fs::File, io::{self, BufRead}};
+use std::{
+    fs::File,
+    io::{self, BufRead},
+};
 
 #[derive(PartialEq, Debug, Clone, Copy)]
 enum RPSShape {
@@ -108,23 +111,46 @@ mod tests {
         assert_eq!(Ok(RPSResult::Draw), RPSResult::try_from("Y"));
         assert_eq!(Ok(RPSResult::Win), RPSResult::try_from("Z"));
 
-        assert_eq!(Err(String::from("Unsupported value: invalid")), RPSShape::try_from("invalid"));
-        assert_eq!(Err(String::from("Unsupported value: invalid")), RPSResult::try_from("invalid"));
+        assert_eq!(
+            Err(String::from("Unsupported value: invalid")),
+            RPSShape::try_from("invalid")
+        );
     }
 
     #[test]
     fn returns_proper_counter_pick() {
         assert_eq!(RPSShape::Paper, RPSResult::Win.counter_pick(RPSShape::Rock));
-        assert_eq!(RPSShape::Scissors, RPSResult::Win.counter_pick(RPSShape::Paper));
-        assert_eq!(RPSShape::Rock, RPSResult::Win.counter_pick(RPSShape::Scissors));
+        assert_eq!(
+            RPSShape::Scissors,
+            RPSResult::Win.counter_pick(RPSShape::Paper)
+        );
+        assert_eq!(
+            RPSShape::Rock,
+            RPSResult::Win.counter_pick(RPSShape::Scissors)
+        );
 
         assert_eq!(RPSShape::Rock, RPSResult::Draw.counter_pick(RPSShape::Rock));
-        assert_eq!(RPSShape::Paper, RPSResult::Draw.counter_pick(RPSShape::Paper));
-        assert_eq!(RPSShape::Scissors, RPSResult::Draw.counter_pick(RPSShape::Scissors));
+        assert_eq!(
+            RPSShape::Paper,
+            RPSResult::Draw.counter_pick(RPSShape::Paper)
+        );
+        assert_eq!(
+            RPSShape::Scissors,
+            RPSResult::Draw.counter_pick(RPSShape::Scissors)
+        );
 
-        assert_eq!(RPSShape::Scissors, RPSResult::Loss.counter_pick(RPSShape::Rock));
-        assert_eq!(RPSShape::Rock, RPSResult::Loss.counter_pick(RPSShape::Paper));
-        assert_eq!(RPSShape::Paper, RPSResult::Loss.counter_pick(RPSShape::Scissors));
+        assert_eq!(
+            RPSShape::Scissors,
+            RPSResult::Loss.counter_pick(RPSShape::Rock)
+        );
+        assert_eq!(
+            RPSShape::Rock,
+            RPSResult::Loss.counter_pick(RPSShape::Paper)
+        );
+        assert_eq!(
+            RPSShape::Paper,
+            RPSResult::Loss.counter_pick(RPSShape::Scissors)
+        );
     }
 
     #[test]

@@ -3,11 +3,12 @@ use std::iter::Peekable;
 use super::command_parser::CommandParser;
 use super::file_system::FileSystem;
 
-pub struct CliParser {
-}
+pub struct CliParser {}
 
 impl CliParser {
-    pub fn parse<T: Iterator<Item = String>>(iterator: &mut Peekable<T>) -> Result<FileSystem, String> {
+    pub fn parse<T: Iterator<Item = String>>(
+        iterator: &mut Peekable<T>,
+    ) -> Result<FileSystem, String> {
         let mut result = FileSystem::new();
         while !Self::on_last_line(iterator) {
             let command = CommandParser::parse(iterator)?;
@@ -47,7 +48,9 @@ mod tests {
             "$ cd c".to_string(),
             "$ ls".to_string(),
             "78 a".to_string(),
-        ].into_iter().peekable();
+        ]
+        .into_iter()
+        .peekable();
 
         let fs = CliParser::parse(&mut iter).unwrap();
 
@@ -64,7 +67,10 @@ mod tests {
         expected_files.insert("/b/a".to_string());
         expected_files.insert("/b/b/a".to_string());
         expected_files.insert("/b/c/a".to_string());
-        let result: HashSet<_> = fs.depth_first_files_iter().map(|x| fs.file_path(x)).collect();
+        let result: HashSet<_> = fs
+            .depth_first_files_iter()
+            .map(|x| fs.file_path(x))
+            .collect();
         assert_eq!(expected_files, result);
     }
 }

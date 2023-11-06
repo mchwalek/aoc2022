@@ -1,4 +1,7 @@
-use std::{fs::File, io::{self, BufRead}};
+use std::{
+    fs::File,
+    io::{self, BufRead},
+};
 
 fn run(path: &str) -> i32 {
     let file = File::open(path).unwrap();
@@ -9,13 +12,11 @@ fn run(path: &str) -> i32 {
     for line_result in reader.lines() {
         let line = line_result.unwrap();
         match line.parse::<i32>() {
-            Ok(calories) => {
-                sum += calories
-            },
+            Ok(calories) => sum += calories,
             Err(_) => {
                 sums.push(sum);
                 sum = 0;
-            },
+            }
         }
     }
 

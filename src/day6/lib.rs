@@ -1,7 +1,10 @@
 pub trait Slideable {
     fn len(&self) -> usize;
     fn slice(&self, start: usize, end: usize) -> Self;
-    fn sliding_window_iter(self, n: usize) -> SlidingWindow<Self> where Self: Sized {
+    fn sliding_window_iter(self, n: usize) -> SlidingWindow<Self>
+    where
+        Self: Sized,
+    {
         SlidingWindow::new(self, n)
     }
 }
@@ -28,16 +31,16 @@ impl<T> Slideable for &[T] {
 
 pub struct SlidingWindow<T>
 where
-    T: Slideable
+    T: Slideable,
 {
     data: T,
     n: usize,
-    index: usize
+    index: usize,
 }
 
 impl<T> SlidingWindow<T>
 where
-    T: Slideable
+    T: Slideable,
 {
     fn new(data: T, n: usize) -> Self {
         SlidingWindow { data, n, index: 0 }
@@ -46,7 +49,7 @@ where
 
 impl<T> Iterator for SlidingWindow<T>
 where
-    T: Slideable
+    T: Slideable,
 {
     type Item = T;
 
