@@ -97,9 +97,9 @@ pub fn run(path: &str) -> i32 {
     'outer: loop {
         let mut bundle: [String; 3] = Default::default();
 
-        for i in 0..bundle.len() {
+        for item in bundle.iter_mut() {
             if let Some(result) = line_iter.next() {
-                bundle[i] = result.unwrap();
+                item.insert_str(0, &result.unwrap());
             } else {
                 break 'outer;
             }
