@@ -9,7 +9,7 @@ use std::{
 
 use self::{commands::Commands, crate_stacks::CrateStacks};
 
-fn run_part1(path: &str) -> String {
+pub fn run_part1(path: &str) -> String {
     let file = File::open(path).unwrap();
     let reader = io::BufReader::new(file);
 
@@ -23,7 +23,7 @@ fn run_part1(path: &str) -> String {
     updated_stacks.tops_string()
 }
 
-fn run_part2(path: &str) -> String {
+pub fn run_part2(path: &str) -> String {
     let file = File::open(path).unwrap();
     let reader = io::BufReader::new(file);
 

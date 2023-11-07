@@ -9,7 +9,7 @@ use std::{
 
 use self::cli_parser::CliParser;
 
-fn run(path: &str) -> (usize, usize) {
+pub fn run(path: &str) -> (usize, usize) {
     let file = File::open(path).unwrap();
     let reader = io::BufReader::new(file);
     let mut lines_iter = reader.lines().map(|x| x.unwrap()).peekable();

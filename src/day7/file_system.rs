@@ -88,10 +88,12 @@ impl FileSystem {
         self.dirs.iter()
     }
 
+    #[allow(dead_code)]
     pub fn depth_first_files_iter(&self) -> impl Iterator<Item = &File> {
         DepthFirstFiles::new(self, DepthFirstDirs::new(self))
     }
 
+    #[allow(dead_code)]
     pub fn files_iter(&self) -> impl Iterator<Item = &File> {
         self.files.iter()
     }
@@ -112,11 +114,13 @@ impl FileSystem {
         result
     }
 
+    #[allow(dead_code)]
     pub fn dir_path(&self, dir: &Dir) -> String {
         let path_buf: PathBuf = self.dir_path_buf(dir);
         path_buf.to_string_lossy().to_string()
     }
 
+    #[allow(dead_code)]
     pub fn file_path(&self, file: &File) -> String {
         let parent_dir = &self.dirs[file.parent_id];
         let mut path_buf: PathBuf = self.dir_path_buf(parent_dir);
@@ -125,6 +129,7 @@ impl FileSystem {
         path_buf.to_string_lossy().to_string()
     }
 
+    #[allow(dead_code)]
     fn dir_path_buf(&self, dir: &Dir) -> PathBuf {
         let mut parts = vec![dir.name.clone()];
 

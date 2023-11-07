@@ -8,7 +8,7 @@ use std::{
 
 use self::data_reader::DataReader;
 
-fn run(path: &str) -> (usize, usize) {
+pub fn run(path: &str) -> (usize, usize) {
     let file = File::open(path).unwrap();
     let mut reader = io::BufReader::new(file);
     let mut data = String::new();

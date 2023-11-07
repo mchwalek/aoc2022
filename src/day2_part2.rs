@@ -75,7 +75,7 @@ impl RPSResult {
     }
 }
 
-fn run(path: &str) -> i32 {
+pub fn run(path: &str) -> i32 {
     let file = File::open(path).unwrap();
     let reader = io::BufReader::new(file);
 

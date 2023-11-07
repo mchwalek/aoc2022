@@ -26,6 +26,7 @@ impl<T> Stack<T> {
         self.storage.last()
     }
 
+    #[allow(dead_code)]
     pub fn pop(&mut self) -> Result<T, &'static str> {
         self.storage.pop().ok_or("empty stack")
     }
