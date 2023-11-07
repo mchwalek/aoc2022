@@ -10,7 +10,7 @@ pub struct CrateStacks<'a> {
 }
 
 impl<'a> CrateStacks<'a> {
-    pub fn new(stack_lines: &'a Vec<String>) -> Result<CrateStacks<'a>, String> {
+    pub fn new(stack_lines: &'a [String]) -> Result<CrateStacks<'a>, String> {
         let (id_line, content_lines) = stack_lines.split_last().unwrap();
         let id_regex = Regex::new(r"\S+").unwrap();
 
@@ -182,7 +182,7 @@ mod tests {
             ];
             assert_eq!(
                 CrateStacks::new(&expected_stack_lines),
-                stacks.update(commands, Order::LIFO)
+                stacks.update(commands, Order::Lifo)
             )
         }
 
@@ -201,7 +201,7 @@ mod tests {
 
             assert_eq!(
                 Err("unknown stack id '3' specified in command 'move 3 from 3 to 1'".to_string()),
-                stacks.update(commands, Order::LIFO)
+                stacks.update(commands, Order::Lifo)
             )
         }
 
@@ -220,7 +220,7 @@ mod tests {
 
             assert_eq!(
                 Err("unknown stack id '3' specified in command 'move 3 from 1 to 3'".to_string()),
-                stacks.update(commands, Order::LIFO)
+                stacks.update(commands, Order::Lifo)
             )
         }
 
@@ -242,7 +242,7 @@ mod tests {
                     "not enough items (3) in stack '1' specified in command 'move 4 from 1 to 2'"
                         .to_string()
                 ),
-                stacks.update(commands, Order::LIFO)
+                stacks.update(commands, Order::Lifo)
             )
         }
 
@@ -263,7 +263,7 @@ mod tests {
             ];
             let commands = Commands::new(&command_lines).unwrap();
 
-            assert!(stacks.update(commands, Order::LIFO).is_err());
+            assert!(stacks.update(commands, Order::Lifo).is_err());
             assert_eq!(original_stacks, stacks);
         }
     }

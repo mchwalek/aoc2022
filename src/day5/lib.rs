@@ -43,8 +43,8 @@ impl<T> Stack<T> {
         let drain_start = self.storage.len() - count;
         let base_iter = self.storage.drain(drain_start..);
         let result_iter: Box<dyn Iterator<Item = T> + 'a> = match order {
-            Order::FIFO => Box::new(base_iter),
-            Order::LIFO => Box::new(base_iter.rev()),
+            Order::Fifo => Box::new(base_iter),
+            Order::Lifo => Box::new(base_iter.rev()),
         };
 
         Ok(result_iter)
@@ -66,27 +66,25 @@ impl<T> FromIterator<T> for Stack<T> {
 
 #[derive(Copy, Clone)]
 pub enum Order {
-    LIFO,
-    FIFO,
+    Lifo,
+    Fifo,
 }
 
 pub fn split_lines<T: Iterator<Item = io::Result<String>>>(
     mut iter: T,
 ) -> (Vec<String>, Vec<String>) {
     let mut stack_lines = Vec::new();
-    loop {
-        match iter.next() {
-            Some(Ok(line)) if !line.is_empty() => stack_lines.push(line),
-            _ => break,
+    while let Some(Ok(line)) = iter.next() {
+        if !line.is_empty() {
+            stack_lines.push(line);
+        } else {
+            break;
         }
     }
 
     let mut command_lines = Vec::new();
-    loop {
-        match iter.next() {
-            Some(Ok(line)) => command_lines.push(line),
-            _ => break,
-        }
+    while let Some(Ok(line)) = iter.next() {
+        command_lines.push(line);
     }
 
     (stack_lines, command_lines)
@@ -134,11 +132,11 @@ mod tests {
 
             assert_eq!(
                 Ok(vec![2, 1]),
-                stack.pop_many_iter(2, Order::LIFO).map(|x| x.collect())
+                stack.pop_many_iter(2, Order::Lifo).map(|x| x.collect())
             );
             assert_eq!(
                 Err::<Vec<_>, _>("not enough items (2) in stack".to_string()),
-                stack2.pop_many_iter(3, Order::LIFO).map(|x| x.collect())
+                stack2.pop_many_iter(3, Order::Lifo).map(|x| x.collect())
             );
         }
 
@@ -151,11 +149,11 @@ mod tests {
 
             assert_eq!(
                 Ok(vec![1, 2]),
-                stack.pop_many_iter(2, Order::FIFO).map(|x| x.collect())
+                stack.pop_many_iter(2, Order::Fifo).map(|x| x.collect())
             );
             assert_eq!(
                 Err::<Vec<_>, _>("not enough items (2) in stack".to_string()),
-                stack2.pop_many_iter(3, Order::FIFO).map(|x| x.collect())
+                stack2.pop_many_iter(3, Order::Fifo).map(|x| x.collect())
             );
         }
     }

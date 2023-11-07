@@ -18,7 +18,7 @@ pub fn run_part1(path: &str) -> String {
 
     let crate_stacks = CrateStacks::new(&stack_lines).unwrap();
     let commands = Commands::new(&command_lines).unwrap();
-    let updated_stacks = crate_stacks.update(commands, lib::Order::LIFO).unwrap();
+    let updated_stacks = crate_stacks.update(commands, lib::Order::Lifo).unwrap();
 
     updated_stacks.tops_string()
 }
@@ -32,7 +32,7 @@ pub fn run_part2(path: &str) -> String {
 
     let crate_stacks = CrateStacks::new(&stack_lines).unwrap();
     let commands = Commands::new(&command_lines).unwrap();
-    let updated_stacks = crate_stacks.update(commands, lib::Order::FIFO).unwrap();
+    let updated_stacks = crate_stacks.update(commands, lib::Order::Fifo).unwrap();
 
     updated_stacks.tops_string()
 }
