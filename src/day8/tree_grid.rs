@@ -90,7 +90,12 @@ impl TreeGrid {
         })
     }
 
-    fn check_visibility<'a, I, F>(&'a self, tree: &Tree, range: I, tree_selector: F) -> TreeVisibility
+    fn check_visibility<'a, I, F>(
+        &'a self,
+        tree: &Tree,
+        range: I,
+        tree_selector: F,
+    ) -> TreeVisibility
     where
         I: Iterator<Item = usize>,
         F: Fn(usize) -> &'a Tree,
@@ -100,10 +105,16 @@ impl TreeGrid {
             count += 1;
             let checked_tree = tree_selector(i);
             if checked_tree.height >= tree.height {
-                return TreeVisibility { count, visible: false }
+                return TreeVisibility {
+                    count,
+                    visible: false,
+                };
             }
         }
-        TreeVisibility { count, visible: true }
+        TreeVisibility {
+            count,
+            visible: true,
+        }
     }
 
     fn height(&self) -> usize {
@@ -133,10 +144,7 @@ mod tests {
 
     #[test]
     fn iterates_over_trees() {
-        let lines = vec![
-            "123".to_string(),
-            "456".to_string(),
-        ];
+        let lines = vec!["123".to_string(), "456".to_string()];
         let grid = TreeGrid::parse(lines.into_iter()).unwrap();
 
         let tree_iter = grid.tree_iter();
@@ -181,10 +189,7 @@ mod tests {
 
     #[test]
     fn handles_invalid_chars() {
-        let lines = vec![
-            "123".to_string(),
-            "45a".to_string()
-        ];
+        let lines = vec!["123".to_string(), "45a".to_string()];
         let result = TreeGrid::parse(lines.into_iter());
 
         assert_eq!(
@@ -195,10 +200,7 @@ mod tests {
 
     #[test]
     fn handles_unequal_length() {
-        let lines = vec![
-            "123".to_string(),
-            "4567".to_string()
-        ];
+        let lines = vec!["123".to_string(), "4567".to_string()];
         let result = TreeGrid::parse(lines.into_iter());
         assert_eq!(
             Err("Line length mismatch at row 2. Expected length 3, found length 4".to_string()),
@@ -209,10 +211,7 @@ mod tests {
     #[test]
     fn detects_if_tree_is_visible() {
         // Edge trees are always visible
-        let mut lines = vec![
-            "11".to_string(),
-            "11".to_string(),
-        ];
+        let mut lines = vec!["11".to_string(), "11".to_string()];
         assert_all_visible(lines);
 
         // Center tree is visible if any trees on one side are shorter
@@ -235,7 +234,8 @@ mod tests {
             "25512".to_string(),
             "65332".to_string(),
             "33549".to_string(),
-            "35390".to_string()];
+            "35390".to_string(),
+        ];
         let grid = TreeGrid::parse(lines.into_iter()).unwrap();
         let trees: Vec<_> = grid.tree_iter().collect();
 

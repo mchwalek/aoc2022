@@ -18,10 +18,10 @@ pub fn run(path: &str) -> (usize, usize) {
         .filter(|x| tree_grid.tree_visible(x))
         .count();
     let highest_scenic_score = tree_grid
-       .tree_iter()
-       .map(|x| tree_grid.scenic_score(x))
-       .max()
-       .unwrap();
+        .tree_iter()
+        .map(|x| tree_grid.scenic_score(x))
+        .max()
+        .unwrap();
 
     (visible_from_outside_count, highest_scenic_score)
 }
