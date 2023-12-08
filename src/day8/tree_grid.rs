@@ -53,121 +53,57 @@ impl TreeGrid {
     }
 
     pub fn tree_visible(&self, tree: &Tree) -> bool {
-        self.visible_from_left(tree)
-            || self.visible_from_right(tree)
-            || self.visible_from_top(tree)
-            || self.visible_from_bottom(tree)
+        self.left_visibility(tree).visible
+            || self.right_visibility(tree).visible
+            || self.top_visibility(tree).visible
+            || self.bottom_visibility(tree).visible
     }
 
     pub fn scenic_score(&self, tree: &Tree) -> usize {
-        self.visible_from_left_count(tree)
-            * self.visible_from_right_count(tree)
-            * self.visible_from_top_count(tree)
-            * self.visible_from_bottom_count(tree)
+        self.left_visibility(tree).count
+            * self.right_visibility(tree).count
+            * self.top_visibility(tree).count
+            * self.bottom_visibility(tree).count
     }
 
-    fn visible_from_left(&self, tree: &Tree) -> bool {
-        for i in (0..tree.column - 1).rev() {
-            let checked_tree = &self.storage[tree.row - 1][i];
-            if checked_tree.height >= tree.height {
-                return false;
-            }
-        }
-
-        true
+    fn left_visibility(&self, tree: &Tree) -> TreeVisibility {
+        self.check_visibility(tree, (0..tree.column - 1).rev(), |i| {
+            &self.storage[tree.row - 1][i]
+        })
     }
 
-    fn visible_from_left_count(&self, tree: &Tree) -> usize {
-        let mut result = 0;
-
-        for i in (0..tree.column - 1).rev() {
-            result += 1;
-
-            let checked_tree = &self.storage[tree.row - 1][i];
-            if checked_tree.height >= tree.height {
-                break;
-            }
-        }
-
-        result
+    fn right_visibility(&self, tree: &Tree) -> TreeVisibility {
+        self.check_visibility(tree, tree.column..self.width(), |i| {
+            &self.storage[tree.row - 1][i]
+        })
     }
 
-    fn visible_from_right(&self, tree: &Tree) -> bool {
-        for i in tree.column..self.width() {
-            let checked_tree = &self.storage[tree.row - 1][i];
-            if checked_tree.height >= tree.height {
-                return false;
-            }
-        }
-
-        true
+    fn top_visibility(&self, tree: &Tree) -> TreeVisibility {
+        self.check_visibility(tree, (0..tree.row - 1).rev(), |i| {
+            &self.storage[i][tree.column - 1]
+        })
     }
 
-    fn visible_from_right_count(&self, tree: &Tree) -> usize {
-        let mut result = 0;
-
-        for i in tree.column..self.width() {
-            result += 1;
-
-            let checked_tree = &self.storage[tree.row - 1][i];
-            if checked_tree.height >= tree.height {
-                break;
-            }
-        }
-
-        result
+    fn bottom_visibility(&self, tree: &Tree) -> TreeVisibility {
+        self.check_visibility(tree, tree.row..self.height(), |i| {
+            &self.storage[i][tree.column - 1]
+        })
     }
 
-    fn visible_from_top(&self, tree: &Tree) -> bool {
-        for i in (0..tree.row - 1).rev() {
-            let checked_tree = &self.storage[i][tree.column - 1];
+    fn check_visibility<'a, I, F>(&'a self, tree: &Tree, range: I, tree_selector: F) -> TreeVisibility
+    where
+        I: Iterator<Item = usize>,
+        F: Fn(usize) -> &'a Tree,
+    {
+        let mut count = 0;
+        for i in range {
+            count += 1;
+            let checked_tree = tree_selector(i);
             if checked_tree.height >= tree.height {
-                return false;
+                return TreeVisibility { count, visible: false }
             }
         }
-
-        true
-    }
-
-    fn visible_from_top_count(&self, tree: &Tree) -> usize {
-        let mut result = 0;
-
-        for i in (0..tree.row - 1).rev() {
-            result += 1;
-
-            let checked_tree = &self.storage[i][tree.column - 1];
-            if checked_tree.height >= tree.height {
-                break;
-            }
-        }
-
-        result
-    }
-
-    fn visible_from_bottom(&self, tree: &Tree) -> bool {
-        for i in tree.row..self.height() {
-            let checked_tree = &self.storage[i][tree.column - 1];
-            if checked_tree.height >= tree.height {
-                return false;
-            }
-        }
-
-        true
-    }
-
-    fn visible_from_bottom_count(&self, tree: &Tree) -> usize {
-        let mut result = 0;
-
-        for i in tree.row..self.height() {
-            result += 1;
-
-            let checked_tree = &self.storage[i][tree.column - 1];
-            if checked_tree.height >= tree.height {
-                break;
-            }
-        }
-
-        result
+        TreeVisibility { count, visible: true }
     }
 
     fn height(&self) -> usize {
@@ -184,6 +120,11 @@ pub struct Tree {
     height: u32,
     row: usize,
     column: usize,
+}
+
+struct TreeVisibility {
+    count: usize,
+    visible: bool,
 }
 
 #[cfg(test)]
