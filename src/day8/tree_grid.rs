@@ -53,25 +53,21 @@ impl TreeGrid {
     }
 
     pub fn tree_visible(&self, tree: &Tree) -> bool {
-        if self.edge_tree(tree) {
-            return true;
-        }
-
         self.visible_from_left(tree)
             || self.visible_from_right(tree)
             || self.visible_from_top(tree)
             || self.visible_from_bottom(tree)
     }
 
-    fn edge_tree(&self, tree: &Tree) -> bool {
-        tree.row == 1
-            || tree.column == 1
-            || tree.row == self.height()
-            || tree.column == self.width()
+    pub fn scenic_score(&self, tree: &Tree) -> usize {
+        self.visible_from_left_count(tree)
+            * self.visible_from_right_count(tree)
+            * self.visible_from_top_count(tree)
+            * self.visible_from_bottom_count(tree)
     }
 
     fn visible_from_left(&self, tree: &Tree) -> bool {
-        for i in 0..tree.column - 1 {
+        for i in (0..tree.column - 1).rev() {
             let checked_tree = &self.storage[tree.row - 1][i];
             if checked_tree.height >= tree.height {
                 return false;
@@ -79,6 +75,21 @@ impl TreeGrid {
         }
 
         true
+    }
+
+    fn visible_from_left_count(&self, tree: &Tree) -> usize {
+        let mut result = 0;
+
+        for i in (0..tree.column - 1).rev() {
+            result += 1;
+
+            let checked_tree = &self.storage[tree.row - 1][i];
+            if checked_tree.height >= tree.height {
+                break;
+            }
+        }
+
+        result
     }
 
     fn visible_from_right(&self, tree: &Tree) -> bool {
@@ -92,8 +103,23 @@ impl TreeGrid {
         true
     }
 
+    fn visible_from_right_count(&self, tree: &Tree) -> usize {
+        let mut result = 0;
+
+        for i in tree.column..self.width() {
+            result += 1;
+
+            let checked_tree = &self.storage[tree.row - 1][i];
+            if checked_tree.height >= tree.height {
+                break;
+            }
+        }
+
+        result
+    }
+
     fn visible_from_top(&self, tree: &Tree) -> bool {
-        for i in 0..tree.row - 1 {
+        for i in (0..tree.row - 1).rev() {
             let checked_tree = &self.storage[i][tree.column - 1];
             if checked_tree.height >= tree.height {
                 return false;
@@ -101,6 +127,21 @@ impl TreeGrid {
         }
 
         true
+    }
+
+    fn visible_from_top_count(&self, tree: &Tree) -> usize {
+        let mut result = 0;
+
+        for i in (0..tree.row - 1).rev() {
+            result += 1;
+
+            let checked_tree = &self.storage[i][tree.column - 1];
+            if checked_tree.height >= tree.height {
+                break;
+            }
+        }
+
+        result
     }
 
     fn visible_from_bottom(&self, tree: &Tree) -> bool {
@@ -112,6 +153,21 @@ impl TreeGrid {
         }
 
         true
+    }
+
+    fn visible_from_bottom_count(&self, tree: &Tree) -> usize {
+        let mut result = 0;
+
+        for i in tree.row..self.height() {
+            result += 1;
+
+            let checked_tree = &self.storage[i][tree.column - 1];
+            if checked_tree.height >= tree.height {
+                break;
+            }
+        }
+
+        result
     }
 
     fn height(&self) -> usize {
@@ -229,6 +285,21 @@ mod tests {
         // Center tree is NOT visible if trees on all sides are taller
         lines = vec!["131".to_string(), "323".to_string(), "131".to_string()];
         assert!(!center_visible(lines));
+    }
+
+    #[test]
+    fn calculates_scenic_score() {
+        let lines = vec![
+            "30373".to_string(),
+            "25512".to_string(),
+            "65332".to_string(),
+            "33549".to_string(),
+            "35390".to_string()];
+        let grid = TreeGrid::parse(lines.into_iter()).unwrap();
+        let trees: Vec<_> = grid.tree_iter().collect();
+
+        assert_eq!(4, grid.scenic_score(trees[7]));
+        assert_eq!(8, grid.scenic_score(trees[17]));
     }
 
     fn assert_all_visible(lines: Vec<String>) {
